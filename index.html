@@ -583,6 +583,38 @@
     margin-bottom:1rem;
   }
 
+  /* TEMA CLARO */
+  body.light-theme {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8edf2;
+    --accent: #0077cc;
+    --accent2: #e05a00;
+    --accent3: #2a9d2a;
+    --text: #1a2535;
+    --muted: #5a7a9a;
+    --border: rgba(0,119,204,0.2);
+    --glow: 0 0 20px rgba(0,119,204,0.2);
+  }
+  body.light-theme nav { background: rgba(240,244,248,0.92); }
+  body.light-theme .stars-bg { display:none; }
+
+  /* DICA BUTTON */
+  .quiz-hint-btn {
+    background: transparent;
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    padding: 0.6rem 1.4rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .quiz-hint-btn:hover { background: var(--accent3); color: var(--bg); }
+  .quiz-hint-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
   /* SCROLL REVEAL */
   .reveal { opacity:0; transform:translateY(30px); transition: all 0.6s ease; }
   .reveal.visible { opacity:1; transform:translateY(0); }
@@ -718,10 +750,13 @@
     <li><a href="#bandeiras">Bandeiras</a></li>
     <li><a href="#records">Recordes</a></li>
     <li><a href="#curiosidades">Curiosidades</a></li>
-    <li><a href="#quiz">Quiz</a></li>
+    <li><a href="#quiz">Quiz Bandeiras</a></li>
+    <li><a href="#quiz-capitais">Quiz Capitais</a></li>
     <li><a href="#ranking">Ranking</a></li>
     <li><a href="#favoritos">Favoritos</a></li>
+    <li><a href="#sugestoes">Sugestões</a></li>
   </ul>
+  <button id="themeToggle" onclick="toggleTheme()" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:1px;transition:all 0.2s;">🌙 TEMA</button>
 </nav>
 
 <!-- HERO -->
@@ -777,7 +812,7 @@
   <div class="facts-grid" id="factsGrid"></div>
 </section>
 
-<!-- QUIZ -->
+<!-- QUIZ BANDEIRAS -->
 <section id="quiz">
   <h2 class="section-title">QUIZ DE <span>BANDEIRAS</span></h2>
   <div class="section-line"></div>
@@ -785,14 +820,33 @@
     <div class="quiz-score" id="quizScore">Pontuação: 0</div>
     <div class="quiz-flag" id="quizFlag"></div>
     <p class="quiz-question" id="quizQuestion">De qual país é esta bandeira?</p>
+    <div id="quizInfo" style="display:none;margin-bottom:0.8rem;font-size:0.85rem;color:var(--muted);text-align:center;"></div>
     <div class="quiz-options" id="quizOptions"></div>
-    <button class="quiz-next" id="quizNext" onclick="nextQuestion()">PRÓXIMA →</button>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+      <button class="quiz-hint-btn" id="quizHint" onclick="useHint()">💡 DICA (remove 2 erradas)</button>
+      <button class="quiz-next" id="quizNext" onclick="nextQuestion()">PRÓXIMA →</button>
+    </div>
   </div>
 </section>
 
-<!-- RANKING -->
+<!-- QUIZ CAPITAIS -->
+<section id="quiz-capitais">
+  <h2 class="section-title">QUIZ DE <span>CAPITAIS</span></h2>
+  <div class="section-line"></div>
+  <div class="quiz-box">
+    <div class="quiz-score" id="capScore">Pontuação: 0</div>
+    <p class="quiz-question" id="capQuestion">Qual é a capital de...</p>
+    <div class="quiz-options" id="capOptions"></div>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+      <button class="quiz-hint-btn" id="capHint" onclick="useCapHint()">💡 DICA (remove 2 erradas)</button>
+      <button class="quiz-next" id="capNext" onclick="nextCapQuestion()">PRÓXIMA →</button>
+    </div>
+  </div>
+</section>
+
+<!-- RANKING BANDEIRAS -->
 <section id="ranking">
-  <h2 class="section-title">RANKING DO <span>QUIZ</span></h2>
+  <h2 class="section-title">RANKING DO <span>QUIZ — BANDEIRAS</span></h2>
   <div class="section-line"></div>
   <div class="ranking-box">
     <div class="ranking-input-row">
@@ -800,6 +854,19 @@
       <button class="btn-submit" onclick="saveRanking()">SALVAR PONTUAÇÃO</button>
     </div>
     <div class="ranking-list" id="rankingList"></div>
+  </div>
+</section>
+
+<!-- RANKING CAPITAIS -->
+<section id="ranking-capitais">
+  <h2 class="section-title">RANKING DO <span>QUIZ — CAPITAIS</span></h2>
+  <div class="section-line"></div>
+  <div class="ranking-box">
+    <div class="ranking-input-row">
+      <input class="ranking-input" id="rankCapName" placeholder="Seu nome..." maxlength="30">
+      <button class="btn-submit" onclick="saveCapRanking()">SALVAR PONTUAÇÃO</button>
+    </div>
+    <div class="ranking-list" id="rankingCapList"></div>
   </div>
 </section>
 
@@ -818,6 +885,55 @@
   <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem;">Países que os visitantes mais clicaram para ver os detalhes.</p>
   <div class="visits-bar" id="visitsBar"></div>
 </section>
+
+<!-- SUGESTÕES -->
+<section id="sugestoes">
+  <h2 class="section-title">SUGESTÕES & <span>FEEDBACK</span></h2>
+  <div class="section-line"></div>
+  <div class="suggestion-box">
+    <div class="suggestion-form">
+      <label>Seu nome</label>
+      <input class="suggestion-input" id="sugName" placeholder="Como você se chama?" maxlength="50">
+      <label>Sua sugestão</label>
+      <textarea class="suggestion-textarea" id="sugText" placeholder="Escreva sua sugestão, ideia ou feedback para o GeoMundo..."></textarea>
+      <button class="btn-submit" style="width:100%" onclick="sendSuggestion()">ENVIAR SUGESTÃO 📬</button>
+      <div class="suggestion-status" id="sugStatus"></div>
+    </div>
+    <h3 style="font-family:'Bebas Neue',cursive;letter-spacing:3px;margin-bottom:1rem;color:var(--accent)">SUGESTÕES DA COMUNIDADE</h3>
+    <div class="suggestions-list" id="suggestionsList"><p style="color:var(--muted)">Ainda não há sugestões. Seja o primeiro!</p></div>
+  </div>
+</section>
+
+<!-- PAINEL DEV SECRETO -->
+<div id="devPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d1520;border-top:2px solid var(--accent);padding:1.5rem 2rem;z-index:9999;font-family:'Space Mono',monospace;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+    <span style="color:var(--accent);font-size:0.9rem;letter-spacing:2px;">🔧 PAINEL DEV — BILLY MODE</span>
+    <button onclick="document.getElementById('devPanel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;">✕</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:700px;">
+    <div>
+      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">REMOVER DO RANKING — BANDEIRAS</p>
+      <div style="display:flex;gap:0.5rem;">
+        <input id="devRemoveName1" placeholder="Nome do jogador..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.8rem;">
+        <button onclick="devRemove('ranking','devRemoveName1','devMsg1')" style="background:var(--accent2);border:none;color:white;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">REMOVER</button>
+      </div>
+      <p id="devMsg1" style="color:var(--accent3);font-size:0.78rem;margin-top:0.3rem;"></p>
+    </div>
+    <div>
+      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">REMOVER DO RANKING — CAPITAIS</p>
+      <div style="display:flex;gap:0.5rem;">
+        <input id="devRemoveName2" placeholder="Nome do jogador..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.8rem;">
+        <button onclick="devRemove('ranking_capitais','devRemoveName2','devMsg2')" style="background:var(--accent2);border:none;color:white;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">REMOVER</button>
+      </div>
+      <p id="devMsg2" style="color:var(--accent3);font-size:0.78rem;margin-top:0.3rem;"></p>
+    </div>
+  </div>
+  <div style="margin-top:1rem;">
+    <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">TABELA DE PONTUAÇÕES</p>
+    <div id="devTable" style="max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.8rem;font-size:0.78rem;color:var(--text);"></div>
+    <button onclick="loadDevTable()" style="margin-top:0.5rem;background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:'Space Mono',monospace;">🔄 ATUALIZAR TABELA</button>
+  </div>
+</div>
 
 <footer>
   <span class="footer-logo">GEOMUNDO</span>
@@ -1273,13 +1389,36 @@ facts.forEach(f => {
   factsGrid.appendChild(el);
 });
 
-// ===== QUIZ =====
-const quizCountries = [...new Map(countries.map(c => [c.code, c])).values()];
-let qScore = 0, qTotal = 0, qCurrent = null, answered = false;
-function shuffle(a){ return [...a].sort(()=>Math.random()-0.5); }
+
+// ===== THEME TOGGLE =====
+function toggleTheme() {
+  const body = document.body;
+  const btn = document.getElementById('themeToggle');
+  if (body.classList.contains('light-theme')) {
+    body.classList.remove('light-theme');
+    btn.textContent = '🌙 TEMA';
+    localStorage.setItem('gm_theme', 'dark');
+  } else {
+    body.classList.add('light-theme');
+    btn.textContent = '☀️ TEMA';
+    localStorage.setItem('gm_theme', 'light');
+  }
+}
+if (localStorage.getItem('gm_theme') === 'light') {
+  document.body.classList.add('light-theme');
+  document.getElementById('themeToggle').textContent = '☀️ TEMA';
+}
+
+// ===== QUIZ BANDEIRAS =====
+const quizCountries = [...new Map(countries.map(c=>[c.code,c])).values()];
+let qScore=0, qTotal=0, qCurrent=null, answered=false, hintUsed=false;
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
+
 function nextQuestion() {
-  answered = false;
+  answered = false; hintUsed = false;
   document.getElementById('quizNext').style.display = 'none';
+  document.getElementById('quizHint').disabled = false;
+  document.getElementById('quizInfo').style.display = 'none';
   const pool = shuffle(quizCountries);
   qCurrent = pool[0];
   const options = shuffle([qCurrent, ...pool.slice(1,4)]);
@@ -1295,26 +1434,150 @@ function nextQuestion() {
     optDiv.appendChild(btn);
   });
 }
+
+function useHint() {
+  if (answered || hintUsed) return;
+  hintUsed = true;
+  document.getElementById('quizHint').disabled = true;
+  const btns = [...document.querySelectorAll('#quizOptions .quiz-opt')];
+  const wrong = shuffle(btns.filter(b => b.textContent !== qCurrent.name));
+  wrong.slice(0,2).forEach(b => { b.style.visibility = 'hidden'; });
+}
+
 function checkAnswer(chosen, btn) {
   if(answered) return;
   answered = true; qTotal++;
-  const btns = document.querySelectorAll('.quiz-opt');
+  const btns = document.querySelectorAll('#quizOptions .quiz-opt');
   btns.forEach(b => {
     b.disabled = true;
+    b.style.visibility = 'visible';
     if(b.textContent === qCurrent.name) b.classList.add('correct');
   });
   if(chosen.name === qCurrent.name) { btn.classList.add('correct'); qScore++; }
   else btn.classList.add('wrong');
   document.getElementById('quizScore').textContent = `Pontuação: ${qScore} / ${qTotal}`;
+  const parts = qCurrent.continent.split('/');
+  const contText = parts.length > 1 ? `🌍 Continentes: ${qCurrent.continent}` : `🌍 Continente: ${qCurrent.continent}`;
+  const infoEl = document.getElementById('quizInfo');
+  infoEl.innerHTML = `${contText} &nbsp;|&nbsp; 📐 Território: ${qCurrent.area}`;
+  infoEl.style.display = 'block';
+  document.getElementById('quizHint').disabled = true;
   document.getElementById('quizNext').style.display = 'inline-block';
 }
 nextQuestion();
+
+// ===== QUIZ CAPITAIS =====
+const capCountries = [...new Map(countries.map(c=>[c.code,c])).values()].filter(c=>c.capital && c.capital!=='—');
+let capScore=0, capTotal=0, capCurrent=null, capAnswered=false, capHintUsed=false;
+
+function nextCapQuestion() {
+  capAnswered = false; capHintUsed = false;
+  document.getElementById('capNext').style.display = 'none';
+  document.getElementById('capHint').disabled = false;
+  const pool = shuffle(capCountries);
+  capCurrent = pool[0];
+  const options = shuffle([capCurrent, ...pool.slice(1,4)]);
+  document.getElementById('capQuestion').innerHTML = `Qual é a capital de <strong>${capCurrent.name}</strong>? ${codeToEmoji(capCurrent.code)}`;
+  const optDiv = document.getElementById('capOptions');
+  optDiv.innerHTML = '';
+  options.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = o.capital;
+    btn.onclick = () => checkCapAnswer(o, btn);
+    optDiv.appendChild(btn);
+  });
+}
+
+function useCapHint() {
+  if (capAnswered || capHintUsed) return;
+  capHintUsed = true;
+  document.getElementById('capHint').disabled = true;
+  const btns = [...document.querySelectorAll('#capOptions .quiz-opt')];
+  const wrong = shuffle(btns.filter(b => b.textContent !== capCurrent.capital));
+  wrong.slice(0,2).forEach(b => { b.style.visibility = 'hidden'; });
+}
+
+function checkCapAnswer(chosen, btn) {
+  if(capAnswered) return;
+  capAnswered = true; capTotal++;
+  const btns = document.querySelectorAll('#capOptions .quiz-opt');
+  btns.forEach(b => {
+    b.disabled = true;
+    b.style.visibility = 'visible';
+    if(b.textContent === capCurrent.capital) b.classList.add('correct');
+  });
+  if(chosen.capital === capCurrent.capital) { btn.classList.add('correct'); capScore++; }
+  else btn.classList.add('wrong');
+  document.getElementById('capScore').textContent = `Pontuação: ${capScore} / ${capTotal}`;
+  document.getElementById('capHint').disabled = true;
+  document.getElementById('capNext').style.display = 'inline-block';
+}
+nextCapQuestion();
 
 // ===== SCROLL REVEAL =====
 const observer = new IntersectionObserver(entries => {
   entries.forEach((e,i) => { if(e.isIntersecting) { setTimeout(()=>e.target.classList.add('visible'), i*60); } });
 }, { threshold:0.1 });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===== DEV PANEL — BILLY MODE =====
+let billyBuffer = '';
+document.addEventListener('keypress', e => {
+  billyBuffer += e.key.toLowerCase();
+  if (billyBuffer.length > 10) billyBuffer = billyBuffer.slice(-10);
+  if (['billy','bily','billi','billy!'].some(w => billyBuffer.endsWith(w))) {
+    document.getElementById('devPanel').style.display = 'block';
+    loadDevTable();
+    billyBuffer = '';
+  }
+});
+
+async function devRemove(table, inputId, msgId) {
+  const name = document.getElementById(inputId).value.trim();
+  if (!name) return;
+  const msgEl = document.getElementById(msgId);
+  if (db) {
+    const { error } = await db.from(table).delete().ilike('name', name);
+    msgEl.textContent = error ? '❌ Erro: ' + error.message : `✅ "${name}" removido de ${table}!`;
+  } else {
+    const key = table === 'ranking' ? 'gm_ranking' : 'gm_ranking_capitais';
+    const list = lsGet(key).filter(r => r.name.toLowerCase() !== name.toLowerCase());
+    lsSet(key, list);
+    msgEl.textContent = `✅ "${name}" removido localmente!`;
+  }
+  loadDevTable();
+  if (table === 'ranking') loadRanking();
+  else loadCapRanking();
+}
+
+async function loadDevTable() {
+  const el = document.getElementById('devTable');
+  let html = '<table style="width:100%;border-collapse:collapse;">';
+  html += '<tr style="color:var(--accent);border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tabela</th><th style="text-align:left;padding:4px 8px;">Nome</th><th style="text-align:left;padding:4px 8px;">Pontuação</th><th style="text-align:left;padding:4px 8px;">Data</th></tr>';
+  const tables = ['ranking', 'ranking_capitais'];
+  for (const t of tables) {
+    let items = [];
+    if (db) {
+      const { data } = await db.from(t).select('*').order('score', { ascending: false }).limit(50);
+      items = data || [];
+    } else {
+      const key = t === 'ranking' ? 'gm_ranking' : 'gm_ranking_capitais';
+      items = lsGet(key).sort((a,b)=>b.score-a.score);
+    }
+    items.forEach(r => {
+      html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:4px 8px;color:var(--muted);">${t}</td>
+        <td style="padding:4px 8px;">${r.name}</td>
+        <td style="padding:4px 8px;color:var(--accent2);">${r.score}</td>
+        <td style="padding:4px 8px;color:var(--muted);font-size:0.72rem;">${new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
+      </tr>`;
+    });
+  }
+  html += '</table>';
+  el.innerHTML = html;
+}
+
 
 // ============================================================
 // ===== CONFIGURAÇÃO — PREENCHA SUAS CHAVES AQUI =====
@@ -1363,8 +1626,8 @@ async function loadRanking() {
   renderRanking(items);
 }
 
-function renderRanking(items) {
-  const el = document.getElementById('rankingList');
+function renderRanking(items, elId='rankingList') {
+  const el = document.getElementById(elId);
   if (!items.length) { el.innerHTML = '<div class="ranking-empty">Ainda não há pontuações. Seja o primeiro! 🏆</div>'; return; }
   const medals = ['gold','silver','bronze'];
   el.innerHTML = items.map((r,i) => `
@@ -1539,25 +1802,8 @@ async function sendSuggestion() {
     lsSet('gm_suggestions', list);
   }
 
-  // Enviar email
-  if (EMAILJS_SERVICE_ID !== 'COLE_SEU_SERVICE_ID') {
-    try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        from_name: name,
-        message: text,
-        to_email: 'joaopedro1314jogos@gmail.com',
-        reply_to: 'noreply@geomundo.com',
-      });
-      statusEl.textContent = '✅ Sugestão enviada com sucesso! Obrigado, ' + name + '!';
-      statusEl.className = 'suggestion-status ok';
-    } catch(e) {
-      statusEl.textContent = '✅ Sugestão salva! (Email não configurado ainda)';
-      statusEl.className = 'suggestion-status ok';
-    }
-  } else {
-    statusEl.textContent = '✅ Sugestão salva localmente! Configure o EmailJS para receber por email.';
-    statusEl.className = 'suggestion-status ok';
-  }
+  statusEl.textContent = '✅ Sugestão enviada com sucesso! Obrigado, ' + name + '!';
+  statusEl.className = 'suggestion-status ok';
 
   document.getElementById('sugName').value = '';
   document.getElementById('sugText').value = '';
@@ -1565,6 +1811,37 @@ async function sendSuggestion() {
 }
 
 loadSuggestions();
+
+// ===== RANKING CAPITAIS =====
+async function loadCapRanking() {
+  let items = [];
+  if (db) {
+    const { data } = await db.from('ranking_capitais').select('*').order('score', { ascending: false }).limit(20);
+    items = data || [];
+  } else {
+    items = lsGet('gm_ranking_capitais').sort((a,b) => b.score - a.score).slice(0,20);
+  }
+  renderRanking(items, 'rankingCapList');
+}
+
+async function saveCapRanking() {
+  const name = document.getElementById('rankCapName').value.trim();
+  if (!name) { alert('Digite seu nome!'); return; }
+  if (capTotal === 0) { alert('Jogue o quiz de capitais primeiro!'); return; }
+  const entry = { name, score: capScore, created_at: new Date().toISOString() };
+  if (db) {
+    await db.from('ranking_capitais').insert([entry]);
+  } else {
+    const list = lsGet('gm_ranking_capitais');
+    list.push(entry);
+    lsSet('gm_ranking_capitais', list);
+  }
+  document.getElementById('rankCapName').value = '';
+  loadCapRanking();
+  alert(`✅ Pontuação de ${capScore} pts salva, ${name}!`);
+}
+
+loadCapRanking();
 </script>
 </body>
 </html>

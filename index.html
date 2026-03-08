@@ -968,10 +968,28 @@
     <span style="color:var(--accent);font-size:0.9rem;letter-spacing:2px;">🔧 PAINEL DEV — BILLY MODE</span>
     <button onclick="document.getElementById('devPanel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;">✕</button>
   </div>
-  <div style="margin-top:0.5rem;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:700px;margin-bottom:1rem;">
+    <div>
+      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">REMOVER — RANKING BANDEIRAS</p>
+      <div style="display:flex;gap:0.5rem;">
+        <input id="devRemoveName1" placeholder="Nome do jogador..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.8rem;">
+        <button onclick="devRemove('ranking','devRemoveName1','devMsg1')" style="background:#c0392b;border:none;color:white;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">REMOVER</button>
+      </div>
+      <p id="devMsg1" style="color:var(--accent3);font-size:0.78rem;margin-top:0.3rem;min-height:1rem;"></p>
+    </div>
+    <div>
+      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">REMOVER — RANKING CAPITAIS</p>
+      <div style="display:flex;gap:0.5rem;">
+        <input id="devRemoveName2" placeholder="Nome do jogador..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.8rem;">
+        <button onclick="devRemove('ranking_capitais','devRemoveName2','devMsg2')" style="background:#c0392b;border:none;color:white;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">REMOVER</button>
+      </div>
+      <p id="devMsg2" style="color:var(--accent3);font-size:0.78rem;margin-top:0.3rem;min-height:1rem;"></p>
+    </div>
+  </div>
+  <div>
     <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">TABELA DE PONTUAÇÕES</p>
     <div id="devTable" style="max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.8rem;font-size:0.78rem;color:var(--text);"></div>
-    <button onclick="loadDevTable()" style="margin-top:0.5rem;background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:'Space Mono',monospace;">🔄 ATUALIZAR TABELA</button>
+    <button onclick="loadDevTable()" style="margin-top:0.5rem;background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:'Space Mono',monospace;">🔄 ATUALIZAR</button>
   </div>
 </div>
 
@@ -1620,6 +1638,24 @@ document.getElementById('searchInput').addEventListener('input', e => {
     billyBuffer = '';
   }
 });
+
+async function devRemove(table, inputId, msgId) {
+  const name = document.getElementById(inputId).value.trim();
+  if (!name) return;
+  const msgEl = document.getElementById(msgId);
+  if (db) {
+    const { error } = await db.from(table).delete().ilike('name', name);
+    msgEl.textContent = error ? '❌ Erro: ' + error.message : `✅ "${name}" removido!`;
+  } else {
+    const key = table === 'ranking' ? 'gm_ranking' : 'gm_ranking_capitais';
+    const list = lsGet(key).filter(r => r.name.toLowerCase() !== name.toLowerCase());
+    lsSet(key, list);
+    msgEl.textContent = `✅ "${name}" removido localmente!`;
+  }
+  document.getElementById(inputId).value = '';
+  loadDevTable();
+  if (table === 'ranking') loadRanking(); else loadCapRanking();
+}
 
 async function loadDevTable() {
   const el = document.getElementById('devTable');

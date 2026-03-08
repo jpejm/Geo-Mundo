@@ -599,6 +599,39 @@
   body.light-theme nav { background: rgba(240,244,248,0.92); }
   body.light-theme .stars-bg { display:none; }
 
+  /* QUIZ CONTINENT FILTER */
+  .quiz-continent-filter {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    justify-content: center; margin-bottom: 1.5rem;
+  }
+  .qcf-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 0.4rem 1rem;
+    font-family: 'Space Mono', monospace; font-size: 0.75rem;
+    letter-spacing: 1px; cursor: pointer; border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .qcf-btn:hover, .qcf-btn.active {
+    background: var(--accent); color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  /* QUIZ VISUAL ROW */
+  .quiz-visual-row {
+    display: flex; gap: 2rem; justify-content: center;
+    align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap;
+  }
+  .quiz-territory-box, .quiz-flag-box {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.5rem;
+    min-width: 140px;
+  }
+  .quiz-territory-box img {
+    width: 130px; height: 90px; object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(0,229,255,0.3));
+  }
+
   /* DICA BUTTON */
   .quiz-hint-btn {
     background: transparent;
@@ -816,10 +849,35 @@
 <section id="quiz">
   <h2 class="section-title">QUIZ DE <span>BANDEIRAS</span></h2>
   <div class="section-line"></div>
+
+  <!-- Filtro por continente -->
+  <div class="quiz-continent-filter">
+    <button class="qcf-btn active" onclick="setQuizContinent('all',this)">🌐 Todos</button>
+    <button class="qcf-btn" onclick="setQuizContinent('América',this)">🌎 América</button>
+    <button class="qcf-btn" onclick="setQuizContinent('Europa',this)">🌍 Europa</button>
+    <button class="qcf-btn" onclick="setQuizContinent('África',this)">🌍 África</button>
+    <button class="qcf-btn" onclick="setQuizContinent('Ásia',this)">🌏 Ásia</button>
+    <button class="qcf-btn" onclick="setQuizContinent('Oceania',this)">🏝 Oceania</button>
+  </div>
+
   <div class="quiz-box">
     <div class="quiz-score" id="quizScore">Pontuação: 0</div>
-    <div class="quiz-flag" id="quizFlag"></div>
-    <p class="quiz-question" id="quizQuestion">De qual país é esta bandeira?</p>
+
+    <!-- Território + Bandeira lado a lado -->
+    <div class="quiz-visual-row">
+      <div class="quiz-territory-box">
+        <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">TERRITÓRIO</div>
+        <div id="quizTerritory" style="width:140px;height:100px;display:flex;align-items:center;justify-content:center;">
+          <span style="color:var(--muted);font-size:0.8rem;">carregando...</span>
+        </div>
+      </div>
+      <div class="quiz-flag-box">
+        <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">BANDEIRA</div>
+        <div class="quiz-flag" id="quizFlag"></div>
+      </div>
+    </div>
+
+    <p class="quiz-question" id="quizQuestion">De qual país são estes símbolos?</p>
     <div id="quizInfo" style="display:none;margin-bottom:0.8rem;font-size:0.85rem;color:var(--muted);text-align:center;"></div>
     <div class="quiz-options" id="quizOptions"></div>
     <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
@@ -1412,18 +1470,65 @@ if (localStorage.getItem('gm_theme') === 'light') {
 // ===== QUIZ BANDEIRAS =====
 const quizCountries = [...new Map(countries.map(c=>[c.code,c])).values()];
 let qScore=0, qTotal=0, qCurrent=null, answered=false, hintUsed=false;
+let quizContinent = 'all';
 function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
+
+function setQuizContinent(cont, btn) {
+  quizContinent = cont;
+  document.querySelectorAll('.qcf-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  qScore = 0; qTotal = 0;
+  document.getElementById('quizScore').textContent = 'Pontuação: 0';
+  nextQuestion();
+}
+
+function getQuizPool() {
+  if (quizContinent === 'all') return quizCountries;
+  return quizCountries.filter(c => c.continent.includes(quizContinent));
+}
+
+async function loadTerritoryMap(code) {
+  const el = document.getElementById('quizTerritory');
+  el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">carregando...</span>';
+  try {
+    // Use restcountries SVG maps via country code
+    const url = `https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${code.toLowerCase()}/vector.svg`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const svg = await res.text();
+      el.innerHTML = `<div style="width:130px;height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${svg}</div>`;
+      const svgEl = el.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.width = '130px';
+        svgEl.style.height = '90px';
+        svgEl.style.fill = 'var(--accent)';
+        svgEl.style.stroke = 'var(--bg)';
+        svgEl.style.strokeWidth = '1px';
+        svgEl.style.filter = 'drop-shadow(0 0 8px rgba(0,229,255,0.4))';
+      }
+    } else {
+      el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">mapa indisponível</span>';
+    }
+  } catch {
+    el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">mapa indisponível</span>';
+  }
+}
 
 function nextQuestion() {
   answered = false; hintUsed = false;
   document.getElementById('quizNext').style.display = 'none';
   document.getElementById('quizHint').disabled = false;
   document.getElementById('quizInfo').style.display = 'none';
-  const pool = shuffle(quizCountries);
+  const pool = shuffle(getQuizPool());
+  if (pool.length < 4) {
+    document.getElementById('quizOptions').innerHTML = '<p style="color:var(--muted);text-align:center;">Poucos países neste continente para o quiz.</p>';
+    return;
+  }
   qCurrent = pool[0];
   const options = shuffle([qCurrent, ...pool.slice(1,4)]);
   document.getElementById('quizFlag').innerHTML = codeToEmoji(qCurrent.code);
-  document.getElementById('quizQuestion').textContent = 'De qual país é esta bandeira?';
+  document.getElementById('quizQuestion').textContent = 'De qual país são estes símbolos?';
+  loadTerritoryMap(qCurrent.code);
   const optDiv = document.getElementById('quizOptions');
   optDiv.innerHTML = '';
   options.forEach(o => {

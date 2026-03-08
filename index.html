@@ -1610,14 +1610,13 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
 // ===== DEV PANEL — BILLY MODE =====
 let billyBuffer = '';
-document.addEventListener('keypress', e => {
-  const tag = document.activeElement.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return; // ignora quando está digitando em campo
-  billyBuffer += e.key.toLowerCase();
-  if (billyBuffer.length > 10) billyBuffer = billyBuffer.slice(-10);
-  if (['billy','bily','billi','billy!'].some(w => billyBuffer.endsWith(w))) {
+document.getElementById('searchInput').addEventListener('input', e => {
+  const val = e.target.value.trim().toLowerCase();
+  if (['billy', 'bily', 'billi'].includes(val)) {
     document.getElementById('devPanel').style.display = 'block';
     loadDevTable();
+    e.target.value = '';
+    filterFlags();
     billyBuffer = '';
   }
 });

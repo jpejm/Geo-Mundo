@@ -968,25 +968,7 @@
     <span style="color:var(--accent);font-size:0.9rem;letter-spacing:2px;">🔧 PAINEL DEV — BILLY MODE</span>
     <button onclick="document.getElementById('devPanel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;">✕</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:700px;">
-    <div>
-      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">REMOVER DO RANKING — BANDEIRAS</p>
-      <div style="display:flex;gap:0.5rem;">
-        <input id="devRemoveName1" placeholder="Nome do jogador..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.8rem;">
-        <button onclick="devRemove('ranking','devRemoveName1','devMsg1')" style="background:var(--accent2);border:none;color:white;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">REMOVER</button>
-      </div>
-      <p id="devMsg1" style="color:var(--accent3);font-size:0.78rem;margin-top:0.3rem;"></p>
-    </div>
-    <div>
-      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">REMOVER DO RANKING — CAPITAIS</p>
-      <div style="display:flex;gap:0.5rem;">
-        <input id="devRemoveName2" placeholder="Nome do jogador..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.8rem;">
-        <button onclick="devRemove('ranking_capitais','devRemoveName2','devMsg2')" style="background:var(--accent2);border:none;color:white;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">REMOVER</button>
-      </div>
-      <p id="devMsg2" style="color:var(--accent3);font-size:0.78rem;margin-top:0.3rem;"></p>
-    </div>
-  </div>
-  <div style="margin-top:1rem;">
+  <div style="margin-top:0.5rem;">
     <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">TABELA DE PONTUAÇÕES</p>
     <div id="devTable" style="max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.8rem;font-size:0.78rem;color:var(--text);"></div>
     <button onclick="loadDevTable()" style="margin-top:0.5rem;background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:'Space Mono',monospace;">🔄 ATUALIZAR TABELA</button>
@@ -1629,6 +1611,8 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 // ===== DEV PANEL — BILLY MODE =====
 let billyBuffer = '';
 document.addEventListener('keypress', e => {
+  const tag = document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return; // ignora quando está digitando em campo
   billyBuffer += e.key.toLowerCase();
   if (billyBuffer.length > 10) billyBuffer = billyBuffer.slice(-10);
   if (['billy','bily','billi','billy!'].some(w => billyBuffer.endsWith(w))) {
@@ -1638,37 +1622,18 @@ document.addEventListener('keypress', e => {
   }
 });
 
-async function devRemove(table, inputId, msgId) {
-  const name = document.getElementById(inputId).value.trim();
-  if (!name) return;
-  const msgEl = document.getElementById(msgId);
-  if (db) {
-    const { error } = await db.from(table).delete().ilike('name', name);
-    msgEl.textContent = error ? '❌ Erro: ' + error.message : `✅ "${name}" removido de ${table}!`;
-  } else {
-    const key = table === 'ranking' ? 'gm_ranking' : 'gm_ranking_capitais';
-    const list = lsGet(key).filter(r => r.name.toLowerCase() !== name.toLowerCase());
-    lsSet(key, list);
-    msgEl.textContent = `✅ "${name}" removido localmente!`;
-  }
-  loadDevTable();
-  if (table === 'ranking') loadRanking();
-  else loadCapRanking();
-}
-
 async function loadDevTable() {
   const el = document.getElementById('devTable');
   let html = '<table style="width:100%;border-collapse:collapse;">';
   html += '<tr style="color:var(--accent);border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tabela</th><th style="text-align:left;padding:4px 8px;">Nome</th><th style="text-align:left;padding:4px 8px;">Pontuação</th><th style="text-align:left;padding:4px 8px;">Data</th></tr>';
-  const tables = ['ranking', 'ranking_capitais'];
-  for (const t of tables) {
+  for (const t of ['ranking','ranking_capitais']) {
     let items = [];
     if (db) {
-      const { data } = await db.from(t).select('*').order('score', { ascending: false }).limit(50);
+      const { data } = await db.from(t).select('*').order('score',{ascending:false}).limit(50);
       items = data || [];
     } else {
       const key = t === 'ranking' ? 'gm_ranking' : 'gm_ranking_capitais';
-      items = lsGet(key).sort((a,b)=>b.score-a.score);
+      items = lsGet(key).sort((a,b) => b.score - a.score);
     }
     items.forEach(r => {
       html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
@@ -1679,8 +1644,7 @@ async function loadDevTable() {
       </tr>`;
     });
   }
-  html += '</table>';
-  el.innerHTML = html;
+  el.innerHTML = html + '</table>';
 }
 
 

@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #060a10;
@@ -787,7 +789,6 @@
     <li><a href="#quiz-capitais">Quiz Capitais</a></li>
     <li><a href="#quiz-tempo">⏱️ Tempo</a></li>
     <li><a href="#quiz-sequencia">🔥 Sequência</a></li>
-    <li><a href="#quiz-capital-guess">🏙️ Capital</a></li>
     <li><a href="#quiz-mapa">🌍 Mapa</a></li>
     <li><a href="#quiz-clickmap">🗺️ Clique</a></li>
     <li><a href="#ranking">Ranking</a></li>
@@ -898,11 +899,15 @@
   <div class="section-line"></div>
   <div class="quiz-box">
     <div class="quiz-score" id="capScore">Pontuação: 0</div>
-    <p class="quiz-question" id="capQuestion">Qual é a capital de...</p>
+    <div id="capModeTag" style="text-align:center;font-size:0.72rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;"></div>
+    <div id="capHighlight" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 2rem;text-align:center;margin-bottom:1rem;">
+      <div style="font-family:'Bebas Neue',cursive;font-size:2.2rem;color:var(--accent);letter-spacing:3px;" id="capHighlightText">—</div>
+    </div>
+    <p class="quiz-question" id="capQuestion">—</p>
     <div class="quiz-options" id="capOptions"></div>
     <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
       <button class="quiz-hint-btn" id="capHint" onclick="useCapHint()">💡 DICA (remove 2 erradas)</button>
-      <button class="quiz-next" id="capNext" onclick="nextCapQuestion()">PRÓXIMA →</button>
+      <button class="quiz-next" id="capNext" onclick="nextCapQuestion()" style="display:none;">PRÓXIMA →</button>
     </div>
   </div>
 </section>
@@ -1013,25 +1018,6 @@
   </div>
 </section>
 
-<!-- ADIVINHE PELA CAPITAL -->
-<section id="quiz-capital-guess">
-  <h2 class="section-title">🏙️ ADIVINHE PELA <span>CAPITAL</span></h2>
-  <div class="section-line"></div>
-  <div class="quiz-box">
-    <div class="quiz-score" id="capGuessScore">Pontuação: 0</div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem 2rem;text-align:center;margin-bottom:1.2rem;">
-      <div style="font-size:0.75rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">CAPITAL</div>
-      <div style="font-family:'Bebas Neue',cursive;font-size:2.5rem;color:var(--accent);letter-spacing:3px;" id="capGuessCity">—</div>
-    </div>
-    <p class="quiz-question">De qual país é esta capital?</p>
-    <div class="quiz-options" id="capGuessOptions"></div>
-    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
-      <button class="quiz-hint-btn" id="capGuessHint" onclick="useCapGuessHint()">💡 DICA (remove 2 erradas)</button>
-      <button class="quiz-next" id="capGuessNext" onclick="nextCapGuessQuestion()" style="display:none;">PRÓXIMA →</button>
-    </div>
-  </div>
-</section>
-
 <!-- ADIVINHE PELO MAPA -->
 <section id="quiz-mapa">
   <h2 class="section-title">🌍 ADIVINHE PELO <span>MAPA</span></h2>
@@ -1057,21 +1043,18 @@
   <div class="section-line"></div>
   <div class="quiz-box">
     <div class="quiz-score" id="clickScore">Pontuação: 0</div>
-    <p class="quiz-question" id="clickQuestion" style="margin-bottom:1rem;">Clique em: <strong id="clickTarget">—</strong></p>
-    <div id="clickFeedback" style="text-align:center;font-size:0.85rem;margin-bottom:0.8rem;min-height:1.2rem;"></div>
-    <div id="clickMapContainer" style="position:relative;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:crosshair;">
-      <iframe id="clickMapFrame"
-        src="https://www.openstreetmap.org/export/embed.html?bbox=-180,-90,180,90&layer=mapnik"
-        style="width:100%;height:420px;border:none;pointer-events:none;"
-        scrolling="no">
-      </iframe>
-      <div id="clickOverlay" style="position:absolute;inset:0;cursor:crosshair;" onclick="handleMapClick(event)"></div>
-      <div id="clickMarker" style="display:none;position:absolute;width:20px;height:20px;background:var(--accent2);border:3px solid white;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 10px rgba(255,107,53,0.8);"></div>
-    </div>
-    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+    <p class="quiz-question" style="margin-bottom:0.5rem;">Clique em: <strong id="clickTarget" style="color:var(--accent);">—</strong></p>
+    <div id="clickFeedback" style="text-align:center;font-size:0.85rem;margin-bottom:0.8rem;min-height:1.4rem;"></div>
+    <div id="leafletMap" style="height:450px;border-radius:8px;border:1px solid var(--border);"></div>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;align-items:center;">
+      <div id="clickConfirmBox" style="display:none;align-items:center;gap:0.8rem;">
+        <span style="color:var(--muted);font-size:0.85rem;" id="clickConfirmText">Confirmar clique aqui?</span>
+        <button onclick="confirmMapClick()" style="background:var(--accent3);border:none;color:var(--bg);padding:0.5rem 1.2rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.8rem;letter-spacing:1px;">✅ CONFIRMAR</button>
+        <button onclick="cancelMapClick()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">✕</button>
+      </div>
       <button class="quiz-next" id="clickNext" onclick="nextClickQuestion()" style="display:none;">PRÓXIMA →</button>
     </div>
-    <p style="color:var(--muted);font-size:0.78rem;text-align:center;margin-top:0.5rem;">📍 Clique no mapa onde fica o país</p>
+    <p style="color:var(--muted);font-size:0.78rem;text-align:center;margin-top:0.5rem;">📍 Use o scroll para dar zoom • Clique no mapa para marcar • Confirme para enviar</p>
   </div>
 </section>
 <section id="ranking">
@@ -1750,9 +1733,9 @@ function checkAnswer(chosen, btn) {
 }
 nextQuestion();
 
-// ===== QUIZ CAPITAIS =====
+// ===== QUIZ CAPITAIS (MODO ALTERNADO) =====
 const capCountries = [...new Map(countries.map(c=>[c.code,c])).values()].filter(c=>c.capital && c.capital!=='—');
-let capScore=0, capTotal=0, capCurrent=null, capAnswered=false, capHintUsed=false;
+let capScore=0, capTotal=0, capCurrent=null, capAnswered=false, capHintUsed=false, capMode='country'; // 'country' = qual capital? | 'capital' = de qual país?
 
 function nextCapQuestion() {
   capAnswered = false; capHintUsed = false;
@@ -1760,39 +1743,58 @@ function nextCapQuestion() {
   document.getElementById('capHint').disabled = false;
   const pool = shuffle(capCountries);
   capCurrent = pool[0];
-  const options = shuffle([capCurrent, ...pool.slice(1,4)]);
-  document.getElementById('capQuestion').innerHTML = `Qual é a capital de <strong>${capCurrent.name}</strong>? ${codeToEmoji(capCurrent.code)}`;
+  // Alterna entre os dois modos
+  capMode = capTotal % 2 === 0 ? 'country' : 'capital';
   const optDiv = document.getElementById('capOptions');
   optDiv.innerHTML = '';
-  options.forEach(o => {
-    const btn = document.createElement('button');
-    btn.className = 'quiz-opt';
-    btn.textContent = o.capital;
-    btn.onclick = () => checkCapAnswer(o, btn);
-    optDiv.appendChild(btn);
-  });
+
+  if (capMode === 'country') {
+    // Modo: "Qual é a capital de X?" → opções de capitais
+    document.getElementById('capModeTag').textContent = '🏙️ QUAL É A CAPITAL?';
+    document.getElementById('capHighlightText').innerHTML = `${codeToEmoji(capCurrent.code)} ${capCurrent.name}`;
+    document.getElementById('capQuestion').textContent = 'Qual é a capital deste país?';
+    const options = shuffle([capCurrent, ...pool.slice(1,4)]);
+    options.forEach(o => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-opt'; btn.textContent = o.capital;
+      btn.onclick = () => checkCapAnswer(btn, o.capital === capCurrent.capital, capCurrent.capital);
+      optDiv.appendChild(btn);
+    });
+  } else {
+    // Modo: "De qual país é a capital X?" → opções de países
+    document.getElementById('capModeTag').textContent = '🌍 DE QUAL PAÍS É ESTA CAPITAL?';
+    document.getElementById('capHighlightText').textContent = capCurrent.capital;
+    document.getElementById('capQuestion').textContent = 'De qual país é esta capital?';
+    const options = shuffle([capCurrent, ...pool.slice(1,4)]);
+    options.forEach(o => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-opt'; btn.textContent = `${codeToEmoji(o.code)} ${o.name}`;
+      btn.onclick = () => checkCapAnswer(btn, o.name === capCurrent.name, `${codeToEmoji(capCurrent.code)} ${capCurrent.name}`);
+      optDiv.appendChild(btn);
+    });
+  }
 }
 
 function useCapHint() {
   if (capAnswered || capHintUsed) return;
   capHintUsed = true;
   document.getElementById('capHint').disabled = true;
+  const correct = capMode === 'country' ? capCurrent.capital : capCurrent.name;
   const btns = [...document.querySelectorAll('#capOptions .quiz-opt')];
-  const wrong = shuffle(btns.filter(b => b.textContent !== capCurrent.capital));
-  wrong.slice(0,2).forEach(b => { b.style.visibility = 'hidden'; });
+  shuffle(btns.filter(b => !b.textContent.includes(correct))).slice(0,2).forEach(b => b.style.visibility='hidden');
 }
 
-function checkCapAnswer(chosen, btn) {
-  if(capAnswered) return;
+function checkCapAnswer(btn, isCorrect, correctText) {
+  if (capAnswered) return;
   capAnswered = true; capTotal++;
   const btns = document.querySelectorAll('#capOptions .quiz-opt');
   btns.forEach(b => {
-    b.disabled = true;
-    b.style.visibility = 'visible';
-    if(b.textContent === capCurrent.capital) b.classList.add('correct');
+    b.disabled = true; b.style.visibility = 'visible';
+    // Mark correct: exact match or contains the correct text
+    if (b.textContent === correctText || b.textContent.trim() === correctText.trim()) b.classList.add('correct');
   });
-  if(chosen.capital === capCurrent.capital) { btn.classList.add('correct'); capScore++; }
-  else btn.classList.add('wrong');
+  if (isCorrect) { btn.classList.add('correct'); capScore++; }
+  else { btn.classList.add('wrong'); }
   document.getElementById('capScore').textContent = `Pontuação: ${capScore} / ${capTotal}`;
   document.getElementById('capHint').disabled = true;
   document.getElementById('capNext').style.display = 'inline-block';
@@ -2001,43 +2003,7 @@ async function saveSeqRanking(){
   alert(`✅ ${seqCorrect} acertos salvos, ${name}!`);
 }
 
-// ===== ADIVINHE PELA CAPITAL =====
-let capGuessScore=0,capGuessTotal=0,capGuessCurrent=null,capGuessAnswered=false,capGuessHintUsed=false;
-const capGuessPool=[...new Map(countries.map(c=>[c.code,c])).values()].filter(c=>c.capital&&c.capital!=='—');
 
-function nextCapGuessQuestion(){
-  capGuessAnswered=false;capGuessHintUsed=false;
-  document.getElementById('capGuessNext').style.display='none';
-  document.getElementById('capGuessHint').disabled=false;
-  const pool=shuffle(capGuessPool);
-  capGuessCurrent=pool[0];
-  const options=shuffle([capGuessCurrent,...pool.slice(1,4)]);
-  document.getElementById('capGuessCity').textContent=capGuessCurrent.capital;
-  const optDiv=document.getElementById('capGuessOptions');
-  optDiv.innerHTML='';
-  options.forEach(o=>{
-    const btn=document.createElement('button');
-    btn.className='quiz-opt';btn.textContent=o.name;
-    btn.onclick=()=>checkCapGuess(o,btn);
-    optDiv.appendChild(btn);
-  });
-}
-function useCapGuessHint(){
-  if(capGuessAnswered||capGuessHintUsed)return;
-  capGuessHintUsed=true;document.getElementById('capGuessHint').disabled=true;
-  shuffle([...document.querySelectorAll('#capGuessOptions .quiz-opt')].filter(b=>b.textContent!==capGuessCurrent.name)).slice(0,2).forEach(b=>b.style.visibility='hidden');
-}
-function checkCapGuess(chosen,btn){
-  if(capGuessAnswered)return;
-  capGuessAnswered=true;capGuessTotal++;
-  document.querySelectorAll('#capGuessOptions .quiz-opt').forEach(b=>{b.disabled=true;b.style.visibility='visible';if(b.textContent===capGuessCurrent.name)b.classList.add('correct');});
-  if(chosen.name===capGuessCurrent.name){btn.classList.add('correct');capGuessScore++;}
-  else btn.classList.add('wrong');
-  document.getElementById('capGuessScore').textContent=`Pontuação: ${capGuessScore} / ${capGuessTotal}`;
-  document.getElementById('capGuessHint').disabled=true;
-  document.getElementById('capGuessNext').style.display='inline-block';
-}
-nextCapGuessQuestion();
 
 // ===== ADIVINHE PELO MAPA =====
 let mapaScore=0,mapaTotal=0,mapaCurrent=null,mapaAnswered=false,mapaHintUsed=false;
@@ -2076,8 +2042,8 @@ function checkMapa(chosen,btn){
 }
 nextMapaQuestion();
 
-// ===== CLIQUE NO MAPA =====
-let clickScore=0,clickTotal=0,clickCurrent=null,clickAnswered=false;
+// ===== CLIQUE NO MAPA (LEAFLET) =====
+let clickScore=0,clickTotal=0,clickCurrent=null,clickAnswered=false,clickPendingLatLng=null,leafletMap=null,clickMarkerLeaflet=null;
 const countryCoords={
   br:[-14.2,-51.9],us:[37.1,-95.7],cn:[35.9,104.2],in:[20.6,79.0],ru:[61.5,105.3],
   au:[-25.3,133.8],ca:[56.1,-106.3],ar:[-38.4,-63.6],dz:[28.0,1.7],cd:[-4.0,21.8],
@@ -2095,36 +2061,73 @@ const countryCoords={
   nl:[52.1,5.3],be:[50.8,4.5],dk:[56.3,9.5],sk:[48.7,19.7],rs:[44.0,21.0],
 };
 
-function nextClickQuestion(){
-  clickAnswered=false;
-  document.getElementById('clickNext').style.display='none';
-  document.getElementById('clickMarker').style.display='none';
-  document.getElementById('clickFeedback').textContent='';
-  const codes=Object.keys(countryCoords);
-  const code=shuffle(codes)[0];
-  clickCurrent=countries.find(c=>c.code===code)||{code,name:code.toUpperCase(),continent:'—'};
-  document.getElementById('clickTarget').innerHTML=`${codeToEmoji(code)} ${clickCurrent.name}`;
+function initLeafletMap() {
+  if (leafletMap) return;
+  leafletMap = L.map('leafletMap', { center:[20,0], zoom:2, minZoom:2, maxZoom:8 });
+  // OpenStreetMap tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:18
+  }).addTo(leafletMap);
+  // Country borders via GeoJSON
+  fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+    .then(r=>r.json())
+    .then(data=>{
+      L.geoJSON(data,{
+        style:{color:'#00e5ff',weight:1,fillColor:'transparent',fillOpacity:0}
+      }).addTo(leafletMap);
+    }).catch(()=>{});
+  leafletMap.on('click', e=>{
+    if(clickAnswered)return;
+    clickPendingLatLng=e.latlng;
+    if(clickMarkerLeaflet) leafletMap.removeLayer(clickMarkerLeaflet);
+    clickMarkerLeaflet=L.circleMarker(e.latlng,{radius:10,color:'white',fillColor:'#ff6b35',fillOpacity:1,weight:3}).addTo(leafletMap);
+    document.getElementById('clickConfirmBox').style.display='flex';
+    document.getElementById('clickConfirmText').textContent=`Confirmar: ${e.latlng.lat.toFixed(1)}°, ${e.latlng.lng.toFixed(1)}°?`;
+  });
 }
 
-function handleMapClick(e){
-  if(clickAnswered)return;
-  clickAnswered=true;clickTotal++;
-  const rect=e.currentTarget.getBoundingClientRect();
-  const x=e.clientX-rect.left,y=e.clientY-rect.top;
-  const pctX=x/rect.width,pctY=y/rect.height;
-  const lng=-180+(pctX*360);
-  const lat=90-(pctY*180);
-  const marker=document.getElementById('clickMarker');
-  marker.style.left=x+'px';marker.style.top=y+'px';marker.style.display='block';
+// Init map when section is visible
+const clickObserver = new IntersectionObserver(entries=>{
+  if(entries[0].isIntersecting) { initLeafletMap(); clickObserver.disconnect(); }
+},{threshold:0.1});
+const clickSection = document.getElementById('quiz-clickmap');
+if(clickSection) clickObserver.observe(clickSection);
+
+function confirmMapClick(){
+  if(!clickPendingLatLng||clickAnswered)return;
+  clickAnswered=true; clickTotal++;
+  document.getElementById('clickConfirmBox').style.display='none';
+  const lat=clickPendingLatLng.lat, lng=clickPendingLatLng.lng;
   const target=countryCoords[clickCurrent.code];
-  if(!target){document.getElementById('clickFeedback').innerHTML='<span style="color:var(--muted)">País sem coordenadas.</span>';setTimeout(nextClickQuestion,1500);return;}
-  const dist=Math.sqrt(Math.pow(lat-target[0],2)+Math.pow(lng-target[1],2));
   const fb=document.getElementById('clickFeedback');
+  if(!target){fb.innerHTML='<span style="color:var(--muted)">País sem coordenadas.</span>';setTimeout(nextClickQuestion,1500);return;}
+  const dist=Math.sqrt(Math.pow(lat-target[0],2)+Math.pow(lng-target[1],2));
+  // Show correct location marker
+  L.circleMarker(target,{radius:12,color:'white',fillColor:'#7cff6b',fillOpacity:1,weight:3}).addTo(leafletMap).bindPopup(`✅ ${clickCurrent.name}`).openPopup();
   if(dist<15){clickScore++;fb.innerHTML=`<span style="color:var(--accent3)">✅ Correto! ${clickCurrent.name} fica aí mesmo!</span>`;}
   else if(dist<35){clickScore++;fb.innerHTML=`<span style="color:var(--accent3)">✅ Quase! Perto o suficiente!</span>`;}
-  else{fb.innerHTML=`<span style="color:var(--accent2)">❌ Longe demais! ${clickCurrent.name} fica em ${target[0].toFixed(1)}°N, ${target[1].toFixed(1)}°E</span>`;}
+  else{fb.innerHTML=`<span style="color:var(--accent2)">❌ Longe! ${clickCurrent.name} fica em ${target[0].toFixed(1)}°N, ${target[1].toFixed(1)}°E</span>`;}
   document.getElementById('clickScore').textContent=`Pontuação: ${clickScore} / ${clickTotal}`;
   document.getElementById('clickNext').style.display='inline-block';
+}
+
+function cancelMapClick(){
+  if(clickMarkerLeaflet){leafletMap.removeLayer(clickMarkerLeaflet);clickMarkerLeaflet=null;}
+  clickPendingLatLng=null;
+  document.getElementById('clickConfirmBox').style.display='none';
+}
+
+function nextClickQuestion(){
+  clickAnswered=false; clickPendingLatLng=null;
+  document.getElementById('clickNext').style.display='none';
+  document.getElementById('clickFeedback').textContent='';
+  document.getElementById('clickConfirmBox').style.display='none';
+  if(clickMarkerLeaflet){leafletMap.removeLayer(clickMarkerLeaflet);clickMarkerLeaflet=null;}
+  // Remove old markers except tiles
+  if(leafletMap) leafletMap.eachLayer(l=>{ if(l instanceof L.CircleMarker) leafletMap.removeLayer(l); });
+  const code=shuffle(Object.keys(countryCoords))[0];
+  clickCurrent=countries.find(c=>c.code===code)||{code,name:code.toUpperCase()};
+  document.getElementById('clickTarget').innerHTML=`${codeToEmoji(code)} ${clickCurrent.name}`;
 }
 nextClickQuestion();
 

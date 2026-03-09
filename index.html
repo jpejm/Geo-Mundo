@@ -785,6 +785,7 @@
     <li><a href="#curiosidades">Curiosidades</a></li>
     <li><a href="#quiz">Quiz Bandeiras</a></li>
     <li><a href="#quiz-capitais">Quiz Capitais</a></li>
+    <li><a href="#quiz-tempo">⏱️ Contra o Tempo</a></li>
     <li><a href="#ranking">Ranking</a></li>
     <li><a href="#favoritos">Favoritos</a></li>
     <li><a href="#sugestoes">Sugestões</a></li>
@@ -902,7 +903,67 @@
   </div>
 </section>
 
-<!-- RANKING BANDEIRAS -->
+<!-- QUIZ CONTRA O TEMPO -->
+<section id="quiz-tempo">
+  <h2 class="section-title">⏱️ CONTRA O <span>TEMPO</span></h2>
+  <div class="section-line"></div>
+  <div class="quiz-box" id="tempoBox">
+
+    <!-- Tela inicial -->
+    <div id="tempoStart" style="text-align:center;padding:2rem 0;">
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:0.5rem;">Responda o máximo de países em</p>
+      <div style="font-family:'Bebas Neue',cursive;font-size:4rem;color:var(--accent);letter-spacing:4px;">60</div>
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:2rem;">segundos!</p>
+      <button class="btn-submit" onclick="startTempoQuiz()" style="font-size:1rem;padding:0.8rem 3rem;letter-spacing:3px;">▶ COMEÇAR</button>
+    </div>
+
+    <!-- Tela do jogo -->
+    <div id="tempoGame" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div class="quiz-score" id="tempoScore" style="margin:0;">Pontuação: 0</div>
+        <div id="tempoClock" style="font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--accent2);letter-spacing:2px;transition:color 0.3s;">60</div>
+      </div>
+      <div id="tempoPulse" style="height:4px;background:var(--accent2);border-radius:2px;margin-bottom:1.2rem;transition:width 1s linear;width:100%;"></div>
+      <div class="quiz-visual-row">
+        <div class="quiz-territory-box">
+          <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">TERRITÓRIO</div>
+          <div id="tempoTerritory" style="width:140px;height:100px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:var(--muted);font-size:0.8rem;">carregando...</span>
+          </div>
+        </div>
+        <div class="quiz-flag-box">
+          <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">BANDEIRA</div>
+          <div class="quiz-flag" id="tempoFlag"></div>
+        </div>
+      </div>
+      <p class="quiz-question" id="tempoQuestion">De qual país são estes símbolos?</p>
+      <div class="quiz-options" id="tempoOptions"></div>
+    </div>
+
+    <!-- Tela de Game Over -->
+    <div id="tempoGameOver" style="display:none;text-align:center;padding:1rem 0;">
+      <div id="tempoGameOverAnim" style="font-size:3rem;margin-bottom:0.5rem;">💀</div>
+      <div style="font-family:'Bebas Neue',cursive;font-size:2.5rem;color:var(--accent2);letter-spacing:4px;">GAME OVER</div>
+      <p style="color:var(--muted);margin:0.5rem 0;">Você acertou</p>
+      <div style="font-family:'Bebas Neue',cursive;font-size:4rem;color:var(--accent);letter-spacing:4px;" id="tempoFinalScore">0</div>
+      <p style="color:var(--muted);margin-bottom:1.5rem;">países em 60 segundos!</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;">
+        <input class="ranking-input" id="tempoRankName" placeholder="Seu nome para o ranking..." maxlength="30" style="max-width:250px;">
+        <button class="btn-submit" onclick="saveTempoRanking()">SALVAR</button>
+      </div>
+      <button onclick="startTempoQuiz()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.6rem 2rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.8rem;letter-spacing:2px;">🔄 JOGAR NOVAMENTE</button>
+    </div>
+  </div>
+</section>
+
+<!-- RANKING CONTRA O TEMPO -->
+<section id="ranking-tempo">
+  <h2 class="section-title">RANKING <span>CONTRA O TEMPO</span></h2>
+  <div class="section-line"></div>
+  <div class="ranking-box">
+    <div class="ranking-list" id="rankingTempoList"></div>
+  </div>
+</section>
 <section id="ranking">
   <h2 class="section-title">RANKING DO <span>QUIZ — BANDEIRAS</span></h2>
   <div class="section-line"></div>
@@ -1620,6 +1681,132 @@ function checkCapAnswer(chosen, btn) {
 }
 nextCapQuestion();
 
+// ===== QUIZ CONTRA O TEMPO =====
+let tempoScore=0, tempoCurrent=null, tempoTimer=null, tempoSecsLeft=60, tempoAnswered=false;
+
+function startTempoQuiz() {
+  tempoScore = 0; tempoSecsLeft = 60; tempoAnswered = false;
+  document.getElementById('tempoStart').style.display = 'none';
+  document.getElementById('tempoGameOver').style.display = 'none';
+  document.getElementById('tempoGame').style.display = 'block';
+  document.getElementById('tempoScore').textContent = 'Pontuação: 0';
+  document.getElementById('tempoClock').textContent = '60';
+  document.getElementById('tempoClock').style.color = 'var(--accent2)';
+  document.getElementById('tempoPulse').style.width = '100%';
+  clearInterval(tempoTimer);
+  tempoTimer = setInterval(() => {
+    tempoSecsLeft--;
+    const pct = (tempoSecsLeft / 60 * 100) + '%';
+    document.getElementById('tempoPulse').style.width = pct;
+    const clk = document.getElementById('tempoClock');
+    clk.textContent = tempoSecsLeft;
+    if (tempoSecsLeft <= 10) clk.style.color = '#ff4444';
+    if (tempoSecsLeft <= 0) {
+      clearInterval(tempoTimer);
+      showTempoGameOver();
+    }
+  }, 1000);
+  nextTempoQuestion();
+}
+
+async function nextTempoQuestion() {
+  tempoAnswered = false;
+  const pool = shuffle([...new Map(countries.map(c=>[c.code,c])).values()]);
+  tempoCurrent = pool[0];
+  const options = shuffle([tempoCurrent, ...pool.slice(1,4)]);
+  document.getElementById('tempoFlag').innerHTML = codeToEmoji(tempoCurrent.code);
+  document.getElementById('tempoQuestion').textContent = 'De qual país são estes símbolos?';
+  loadTempoMap(tempoCurrent.code);
+  const optDiv = document.getElementById('tempoOptions');
+  optDiv.innerHTML = '';
+  options.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = o.name;
+    btn.onclick = () => checkTempoAnswer(o, btn);
+    optDiv.appendChild(btn);
+  });
+}
+
+async function loadTempoMap(code) {
+  const el = document.getElementById('tempoTerritory');
+  el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">carregando...</span>';
+  try {
+    const url = `https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${code.toLowerCase()}/vector.svg`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const svg = await res.text();
+      el.innerHTML = `<div style="width:130px;height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${svg}</div>`;
+      const svgEl = el.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.cssText = 'width:130px;height:90px;fill:var(--accent);stroke:var(--bg);stroke-width:1px;filter:drop-shadow(0 0 8px rgba(0,229,255,0.4));';
+      }
+    } else { el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">—</span>'; }
+  } catch { el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">—</span>'; }
+}
+
+function checkTempoAnswer(chosen, btn) {
+  if (tempoAnswered || tempoSecsLeft <= 0) return;
+  tempoAnswered = true;
+  const btns = document.querySelectorAll('#tempoOptions .quiz-opt');
+  btns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === tempoCurrent.name) b.classList.add('correct');
+  });
+  if (chosen.name === tempoCurrent.name) {
+    btn.classList.add('correct');
+    tempoScore++;
+    document.getElementById('tempoScore').textContent = `Pontuação: ${tempoScore}`;
+    // Breve flash verde
+    setTimeout(() => nextTempoQuestion(), 400);
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(() => nextTempoQuestion(), 800);
+  }
+}
+
+function showTempoGameOver() {
+  document.getElementById('tempoGame').style.display = 'none';
+  const go = document.getElementById('tempoGameOver');
+  go.style.display = 'block';
+  document.getElementById('tempoFinalScore').textContent = tempoScore;
+  // Animação do emoji
+  const emojis = ['💀','😭','🤯','🏆','🔥','👑'];
+  const anim = document.getElementById('tempoGameOverAnim');
+  anim.style.animation = 'none';
+  anim.textContent = tempoScore >= 15 ? '🏆' : tempoScore >= 8 ? '🔥' : '💀';
+  anim.style.display = 'block';
+  anim.animate([{transform:'scale(0)',opacity:0},{transform:'scale(1.3)',opacity:1},{transform:'scale(1)',opacity:1}], {duration:600,fill:'forwards'});
+}
+
+async function saveTempoRanking() {
+  const name = document.getElementById('tempoRankName').value.trim();
+  if (!name) { alert('Digite seu nome!'); return; }
+  const entry = { name, score: tempoScore, created_at: new Date().toISOString() };
+  if (db) {
+    await db.from('ranking_tempo').insert([entry]);
+  } else {
+    const list = lsGet('gm_ranking_tempo');
+    list.push(entry);
+    lsSet('gm_ranking_tempo', list);
+  }
+  document.getElementById('tempoRankName').value = '';
+  loadTempoRanking();
+  alert(`✅ ${tempoScore} pts salvo, ${name}!`);
+}
+
+async function loadTempoRanking() {
+  let items = [];
+  if (db) {
+    const { data } = await db.from('ranking_tempo').select('*').order('score',{ascending:false}).limit(20);
+    items = data || [];
+  } else {
+    items = lsGet('gm_ranking_tempo').sort((a,b)=>b.score-a.score).slice(0,20);
+  }
+  renderRanking(items, 'rankingTempoList');
+}
+loadTempoRanking();
+
 // ===== SCROLL REVEAL =====
 const observer = new IntersectionObserver(entries => {
   entries.forEach((e,i) => { if(e.isIntersecting) { setTimeout(()=>e.target.classList.add('visible'), i*60); } });
@@ -1661,7 +1848,7 @@ async function loadDevTable() {
   const el = document.getElementById('devTable');
   let html = '<table style="width:100%;border-collapse:collapse;">';
   html += '<tr style="color:var(--accent);border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tabela</th><th style="text-align:left;padding:4px 8px;">Nome</th><th style="text-align:left;padding:4px 8px;">Pontuação</th><th style="text-align:left;padding:4px 8px;">Data</th></tr>';
-  for (const t of ['ranking','ranking_capitais']) {
+  for (const t of ['ranking','ranking_capitais','ranking_tempo']) {
     let items = [];
     if (db) {
       const { data } = await db.from(t).select('*').order('score',{ascending:false}).limit(50);

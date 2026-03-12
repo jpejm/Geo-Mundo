@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoMundo — Explore o Planeta</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #060a10;
+    --surface: #0d1520;
+    --surface2: #111d2e;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #7cff6b;
+    --text: #e8f0fe;
+    --muted: #6b8cae;
+    --border: rgba(0,229,255,0.15);
+    --glow: 0 0 30px rgba(0,229,255,0.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* STARS BACKGROUND */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 35%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 50%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(2px 2px at 45% 75%, rgba(0,229,255,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 75% 25%, rgba(0,229,255,0.2) 0%, transparent 100%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* NAV */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background: rgba(6,10,16,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .nav-logo {
+    font-family:'Bebas Neue', cursive;
+    font-size:1.8rem;
+    color: var(--accent);
+    letter-spacing:3px;
+    text-shadow: var(--glow);
+  }
+  .nav-logo span { color: var(--accent2); }
+  .nav-links { display:flex; gap:2rem; list-style:none; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration:none;
+    font-size:0.85rem;
+    font-weight:500;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* HERO */
+  #hero {
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    padding: 4rem 2rem;
+    position:relative;
+    z-index:1;
+  }
+  .hero-globe {
+    font-size:8rem;
+    animation: spin 20s linear infinite;
+    display:inline-block;
+    margin-bottom:1rem;
+    filter: drop-shadow(0 0 40px rgba(0,229,255,0.5));
+  }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  .hero-title {
+    font-family:'Bebas Neue', cursive;
+    font-size: clamp(4rem, 12vw, 9rem);
+    line-height:0.9;
+    letter-spacing:8px;
+    color: var(--text);
+    text-shadow: 0 0 60px rgba(0,229,255,0.4);
+  }
+  .hero-title span { color: var(--accent); }
+  .hero-sub {
+    font-size:1.1rem;
+    color: var(--muted);
+    margin:1.5rem 0 3rem;
+    max-width:500px;
+    line-height:1.7;
+  }
+  .hero-stats {
+    display:flex; gap:3rem; flex-wrap:wrap; justify-content:center;
+    margin-bottom:3rem;
+  }
+  .stat {
+    text-align:center;
+  }
+  .stat-num {
+    font-family:'Bebas Neue', cursive;
+    font-size:2.5rem;
+    color: var(--accent);
+    display:block;
+  }
+  .stat-label {
+    font-size:0.8rem;
+    color: var(--muted);
+    text-transform:uppercase;
+    letter-spacing:2px;
+  }
+  .btn-explore {
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    padding:1rem 3rem;
+    font-family:'Space Mono', monospace;
+    font-size:0.9rem;
+    cursor:pointer;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    transition: all 0.3s;
+    text-decoration:none;
+    display:inline-block;
+    position:relative;
+    overflow:hidden;
+  }
+  .btn-explore::before {
+    content:'';
+    position:absolute; inset:0;
+    background: var(--accent);
+    transform:translateX(-101%);
+    transition: transform 0.3s;
+    z-index:-1;
+  }
+  .btn-explore:hover { color: var(--bg); }
+  .btn-explore:hover::before { transform:translateX(0); }
+
+  /* SECTIONS */
+  section { position:relative; z-index:1; padding:5rem 2rem; max-width:1400px; margin:0 auto; }
+  .section-title {
+    font-family:'Bebas Neue', cursive;
+    font-size:clamp(2.5rem, 6vw, 4.5rem);
+    letter-spacing:5px;
+    margin-bottom:0.5rem;
+  }
+  .section-title span { color: var(--accent); }
+  .section-line {
+    width:80px; height:3px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    margin-bottom:3rem;
+  }
+
+  /* CONTINENTS */
+  .continents-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap:1.5rem;
+  }
+  .continent-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius:4px;
+    padding:2rem;
+    cursor:pointer;
+    transition: all 0.3s;
+    position:relative;
+    overflow:hidden;
+  }
+  .continent-card::before {
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:3px;
+    background: var(--card-accent, var(--accent));
+    transform:scaleX(0);
+    transform-origin:left;
+    transition: transform 0.3s;
+  }
+  .continent-card:hover { 
+    transform:translateY(-4px);
+    border-color: var(--card-accent, var(--accent));
+    box-shadow: 0 8px 40px rgba(0,229,255,0.15);
+  }
+  .continent-card:hover::before { transform:scaleX(1); }
+  .continent-emoji { font-size:3rem; display:block; margin-bottom:1rem; }
+  .continent-name {
+    font-family:'Bebas Neue', cursive;
+    font-size:1.8rem;
+    letter-spacing:3px;
+    color: var(--text);
+    margin-bottom:0.5rem;
+  }
+  .continent-info { color: var(--muted); font-size:0.85rem; line-height:1.6; }
+  .continent-tag {
+    display:inline-block;
+    padding:0.2rem 0.7rem;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--border);
+    border-radius:2px;
+    font-size:0.75rem;
+    color: var(--accent);
+    margin-top:1rem;
+    font-family:'Space Mono', monospace;
+  }
+
+  /* FLAGS SECTION */
+  #bandeiras { background: var(--surface); border-radius:8px; padding:3rem; }
+  .flags-search {
+    display:flex;
+    flex-direction: column;
+    gap:1rem;
+    margin-bottom:2rem;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding:0.8rem 1.2rem;
+    font-family:'DM Sans', sans-serif;
+    font-size:1rem;
+    outline:none;
+    transition: border-color 0.2s;
+    border-radius:4px;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .filter-btns-row {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+  .filter-btns-row::-webkit-scrollbar { display:none; }
+  .filter-btn {
+    background:transparent;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--muted);
+    padding:0.75rem 1.4rem;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+    font-size:0.78rem;
+    letter-spacing:1px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .filter-btn:last-child { border-right: none; }
+  .filter-btn:hover { 
+    color: var(--accent);
+    background: rgba(0,229,255,0.05);
+  }
+  .filter-btn.active { 
+    color: var(--bg);
+    background: var(--accent);
+    font-weight: 700;
+  }
+  .flags-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap:1rem;
+    max-height:600px;
+    overflow-y:auto;
+    padding-right:0.5rem;
+  }
+  .flags-grid::-webkit-scrollbar { width:4px; }
+  .flags-grid::-webkit-scrollbar-track { background: var(--bg); }
+  .flags-grid::-webkit-scrollbar-thumb { background: var(--accent); border-radius:2px; }
+  .flag-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius:4px;
+    padding:1rem;
+    text-align:center;
+    cursor:pointer;
+    transition: all 0.2s;
+  }
+  .flag-card:hover {
+    border-color: var(--accent2);
+    transform:scale(1.03);
+  }
+  .flag-emoji { display:flex; justify-content:center; align-items:center; margin-bottom:0.6rem; height:44px; }
+  .panel-flag { flex-shrink: 0; display:flex; align-items:center; width:44px; }
+  .modal-flag { display:block; margin-bottom:1rem; }
+  .modal-flag img { display:none; }
+  .flag-country { font-weight:500; font-size:0.85rem; margin-bottom:0.2rem; }
+  .flag-capital { color: var(--muted); font-size:0.75rem; }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:200;
+    background: rgba(6,10,16,0.9);
+    backdrop-filter:blur(10px);
+    display:flex; align-items:center; justify-content:center;
+    padding:2rem;
+    opacity:0; pointer-events:none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.active { opacity:1; pointer-events:all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius:8px;
+    max-width:600px; width:100%;
+    padding:2.5rem;
+    position:relative;
+    transform: translateY(20px);
+    transition: transform 0.3s;
+  }
+  .modal-overlay.active .modal { transform:translateY(0); }
+  .modal-close {
+    position:absolute; top:1rem; right:1rem;
+    background:none; border:none; color: var(--muted);
+    font-size:1.5rem; cursor:pointer;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--accent2); }
+  .modal-flag { display:block; margin-bottom:1rem; }
+  .modal-flag img { width:100px; height:auto; border-radius:4px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+  .modal-name {
+    font-family:'Bebas Neue', cursive;
+    font-size:3rem;
+    letter-spacing:4px;
+    margin-bottom:1.5rem;
+  }
+  .modal-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:1rem;
+  }
+  .modal-item label {
+    display:block; color: var(--muted); font-size:0.75rem;
+    text-transform:uppercase; letter-spacing:2px; margin-bottom:0.3rem;
+  }
+  .modal-item span {
+    font-weight:500; color: var(--text);
+  }
+
+  /* CONTINENT PANEL */
+  .continent-card { cursor: pointer; }
+  .continent-card.selected {
+    border-color: var(--card-accent, var(--accent));
+    box-shadow: 0 0 30px rgba(0,229,255,0.2);
+  }
+  .continent-panel {
+    grid-column: 1 / -1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), padding 0.3s;
+    padding: 0 2rem;
+  }
+  .continent-panel.open {
+    max-height: 1000px;
+    padding: 2rem;
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .panel-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .panel-search {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s;
+  }
+  .panel-search:focus { border-color: var(--accent); }
+  .panel-countries {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+  }
+  .panel-countries::-webkit-scrollbar { width: 4px; }
+  .panel-countries::-webkit-scrollbar-track { background: var(--bg); }
+  .panel-countries::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+  .panel-country-row {
+    display: flex; align-items: center; gap: 0.8rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: fadeInUp 0.3s ease both;
+  }
+  .panel-country-row:hover {
+    border-color: var(--accent2);
+    transform: translateX(3px);
+  }
+  @keyframes fadeInUp {
+    from { opacity:0; transform: translateY(10px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  .panel-flag { flex-shrink: 0; display:flex; align-items:center; }
+  .panel-flag img { display:none; }
+  .panel-info { overflow: hidden; }
+  .panel-country-name { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .panel-capital { font-size: 0.75rem; color: var(--muted); }
+  .panel-empty { color: var(--muted); font-size:0.9rem; padding:1rem 0; }
+
+  /* CURIOSIDADES */
+  .facts-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap:1.5rem;
+  }
+  .fact-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius:4px;
+    padding:2rem;
+    position:relative;
+    overflow:hidden;
+  }
+  .fact-card::after {
+    content: attr(data-num);
+    position:absolute;
+    bottom:-1rem; right:1rem;
+    font-family:'Bebas Neue', cursive;
+    font-size:5rem;
+    color: rgba(0,229,255,0.05);
+    pointer-events:none;
+  }
+  .fact-icon { font-size:2rem; margin-bottom:1rem; display:block; }
+  .fact-title {
+    font-family:'Bebas Neue', cursive;
+    font-size:1.3rem;
+    letter-spacing:2px;
+    color: var(--accent2);
+    margin-bottom:0.8rem;
+  }
+  .fact-text { color: var(--muted); line-height:1.7; font-size:0.9rem; }
+
+  /* QUIZ */
+  #quiz { background: var(--surface); border-radius:8px; padding:3rem; }
+  .quiz-box { max-width:600px; margin:0 auto; text-align:center; }
+  .quiz-flag { display:block; margin:1rem auto; font-size:5rem; line-height:1; animation: bounce 0.5s ease; }
+  @keyframes bounce {
+    0%,100%{transform:scale(1)} 50%{transform:scale(1.2)}
+  }
+  .quiz-question { font-size:1.1rem; color: var(--muted); margin-bottom:2rem; }
+  .quiz-options {
+    display:grid; grid-template-columns:1fr 1fr; gap:1rem;
+    margin-bottom:2rem;
+  }
+  .quiz-opt {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding:1rem;
+    cursor:pointer;
+    border-radius:4px;
+    font-family:'DM Sans', sans-serif;
+    font-size:0.95rem;
+    transition: all 0.2s;
+  }
+  .quiz-opt:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-opt.correct { border-color: var(--accent3); color: var(--accent3); background: rgba(124,255,107,0.1); }
+  .quiz-opt.wrong { border-color: var(--accent2); color: var(--accent2); background: rgba(255,107,53,0.1); }
+  .quiz-score {
+    font-family:'Bebas Neue', cursive;
+    font-size:1.5rem;
+    letter-spacing:3px;
+    color: var(--accent);
+    margin-bottom:1rem;
+  }
+  .quiz-next {
+    background: var(--accent);
+    border:none;
+    color: var(--bg);
+    padding:0.8rem 2.5rem;
+    font-family:'Space Mono', monospace;
+    font-size:0.85rem;
+    letter-spacing:2px;
+    cursor:pointer;
+    border-radius:4px;
+    transition: opacity 0.2s;
+    display:none;
+  }
+  .quiz-next:hover { opacity:0.8; }
+
+  /* MAPA INTERATIVO (SVG simplificado) */
+  .world-map-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius:8px;
+    padding:2rem;
+    text-align:center;
+    overflow:hidden;
+  }
+  .map-info {
+    display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin-bottom:2rem;
+  }
+  .map-tag {
+    display:flex; align-items:center; gap:0.5rem;
+    font-size:0.8rem; color: var(--muted);
+  }
+  .map-dot { width:10px; height:10px; border-radius:50%; }
+
+  /* RECORDS */
+  .records-list {
+    display:grid; gap:1rem;
+  }
+  .record-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius:4px;
+    padding:1.5rem 2rem;
+    display:flex; align-items:center; gap:2rem;
+    transition: border-color 0.2s;
+  }
+  .record-item:hover { border-color: var(--accent); }
+  .record-medal { font-size:2rem; }
+  .record-body { flex:1; }
+  .record-title { font-weight:700; margin-bottom:0.3rem; }
+  .record-desc { color: var(--muted); font-size:0.85rem; }
+  .record-value {
+    font-family:'Bebas Neue', cursive;
+    font-size:1.5rem;
+    color: var(--accent2);
+    letter-spacing:2px;
+    white-space:nowrap;
+  }
+
+  /* FOOTER */
+  footer {
+    position:relative; z-index:1;
+    border-top: 1px solid var(--border);
+    padding:3rem 2rem;
+    text-align:center;
+    color: var(--muted);
+    font-size:0.85rem;
+  }
+  footer .footer-logo {
+    font-family:'Bebas Neue', cursive;
+    font-size:2rem;
+    color: var(--accent);
+    letter-spacing:4px;
+    display:block;
+    margin-bottom:1rem;
+  }
+
+  /* TEMA CLARO */
+  body.light-theme {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8edf2;
+    --accent: #0077cc;
+    --accent2: #e05a00;
+    --accent3: #2a9d2a;
+    --text: #1a2535;
+    --muted: #5a7a9a;
+    --border: rgba(0,119,204,0.2);
+    --glow: 0 0 20px rgba(0,119,204,0.2);
+  }
+  body.light-theme nav { background: rgba(240,244,248,0.92); }
+  body.light-theme .stars-bg { display:none; }
+
+  /* QUIZ CONTINENT FILTER */
+  .quiz-continent-filter {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    justify-content: center; margin-bottom: 1.5rem;
+  }
+  .qcf-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 0.4rem 1rem;
+    font-family: 'Space Mono', monospace; font-size: 0.75rem;
+    letter-spacing: 1px; cursor: pointer; border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .qcf-btn:hover, .qcf-btn.active {
+    background: var(--accent); color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  /* QUIZ VISUAL ROW */
+  .quiz-visual-row {
+    display: flex; gap: 2rem; justify-content: center;
+    align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap;
+  }
+  .quiz-territory-box, .quiz-flag-box {
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.5rem;
+    min-width: 140px;
+  }
+  .quiz-territory-box img {
+    width: 130px; height: 90px; object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(0,229,255,0.3));
+  }
+
+  /* DICA BUTTON */
+  .quiz-hint-btn {
+    background: transparent;
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    padding: 0.6rem 1.4rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .quiz-hint-btn:hover { background: var(--accent3); color: var(--bg); }
+  .quiz-hint-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* SCROLL REVEAL */
+  .reveal { opacity:0; transform:translateY(30px); transition: all 0.6s ease; }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+
+  @keyframes streakPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,107,53,0); border-color: var(--border); }
+    50% { box-shadow: 0 0 8px 2px rgba(255,107,53,0.5); border-color: var(--accent2); }
+  }
+
+  /* RANKING */
+  .ranking-box { max-width:700px; margin:0 auto; }
+  .ranking-input-row { display:flex; gap:1rem; margin-bottom:2rem; flex-wrap:wrap; }
+  .ranking-input {
+    flex:1; min-width:160px;
+    background:var(--bg); border:1px solid var(--border);
+    color:var(--text); padding:0.8rem 1.2rem;
+    font-family:'DM Sans',sans-serif; font-size:1rem;
+    border-radius:4px; outline:none; transition:border-color 0.2s;
+  }
+  .ranking-input:focus { border-color:var(--accent); }
+  .btn-submit {
+    background:var(--accent); border:none; color:var(--bg);
+    padding:0.8rem 2rem; font-family:'Space Mono',monospace;
+    font-size:0.85rem; letter-spacing:2px; cursor:pointer;
+    border-radius:4px; transition:opacity 0.2s; font-weight:700;
+  }
+  .btn-submit:hover { opacity:0.85; }
+  .ranking-list { display:grid; gap:0.6rem; }
+  .ranking-item {
+    display:flex; align-items:center; gap:1.2rem;
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:4px; padding:0.9rem 1.4rem;
+    transition:border-color 0.2s;
+  }
+  .ranking-item:hover { border-color:var(--accent); }
+  .ranking-pos {
+    font-family:'Bebas Neue',cursive; font-size:1.6rem;
+    color:var(--muted); width:32px; text-align:center;
+  }
+  .ranking-pos.gold { color:#ffd700; }
+  .ranking-pos.silver { color:#c0c0c0; }
+  .ranking-pos.bronze { color:#cd7f32; }
+  .ranking-name { flex:1; font-weight:600; }
+  .ranking-score {
+    font-family:'Bebas Neue',cursive; font-size:1.4rem;
+    color:var(--accent2); letter-spacing:2px;
+  }
+  .ranking-empty { color:var(--muted); text-align:center; padding:2rem; }
+
+  /* FAVORITOS */
+  .favorites-section { background:var(--surface); border-radius:8px; padding:3rem; }
+  .fav-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:0.8rem; margin-top:1.5rem; }
+  .fav-card {
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:4px; padding:0.8rem 1rem;
+    display:flex; align-items:center; gap:0.8rem;
+    transition:all 0.2s; cursor:pointer; position:relative;
+  }
+  .fav-card:hover { border-color:var(--accent2); }
+  .fav-card .fav-name { font-size:0.82rem; font-weight:600; flex:1; }
+  .fav-remove {
+    background:none; border:none; color:var(--muted);
+    cursor:pointer; font-size:1rem; transition:color 0.2s; padding:0;
+  }
+  .fav-remove:hover { color:var(--accent2); }
+  .fav-empty { color:var(--muted); font-size:0.9rem; margin-top:1rem; }
+
+  /* VISITAS */
+  .visits-bar {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem;
+  }
+  .visit-item {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:4px; padding:1rem 1.4rem;
+    display:flex; align-items:center; gap:1rem;
+  }
+  .visit-flag { font-size:1.8rem; }
+  .visit-info { flex:1; }
+  .visit-name { font-weight:600; font-size:0.85rem; }
+  .visit-count { color:var(--accent); font-family:'Space Mono',monospace; font-size:0.8rem; }
+  .visit-bar-fill {
+    height:3px; background:var(--accent); border-radius:2px;
+    margin-top:4px; transition:width 0.5s;
+  }
+
+  /* SUGESTÕES */
+  .suggestion-box { max-width:650px; margin:0 auto; }
+  .suggestion-form {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; padding:2rem; margin-bottom:2rem;
+  }
+  .suggestion-form label {
+    display:block; color:var(--muted); font-size:0.78rem;
+    text-transform:uppercase; letter-spacing:2px; margin-bottom:0.4rem;
+  }
+  .suggestion-input, .suggestion-textarea {
+    width:100%; background:var(--bg); border:1px solid var(--border);
+    color:var(--text); padding:0.8rem 1.1rem;
+    font-family:'DM Sans',sans-serif; font-size:0.95rem;
+    border-radius:4px; outline:none; transition:border-color 0.2s;
+    margin-bottom:1.2rem; display:block;
+  }
+  .suggestion-input:focus, .suggestion-textarea:focus { border-color:var(--accent); }
+  .suggestion-textarea { resize:vertical; min-height:100px; }
+  .suggestion-status {
+    margin-top:1rem; font-size:0.9rem; text-align:center;
+    padding:0.8rem; border-radius:4px; display:none;
+  }
+  .suggestion-status.ok { background:rgba(124,255,107,0.1); color:var(--accent3); border:1px solid var(--accent3); display:block; }
+  .suggestion-status.err { background:rgba(255,107,53,0.1); color:var(--accent2); border:1px solid var(--accent2); display:block; }
+  .suggestions-list { display:grid; gap:1rem; }
+  .suggestion-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:4px; padding:1.2rem 1.5rem;
+  }
+  .suggestion-card-name { font-weight:700; color:var(--accent); font-size:0.85rem; margin-bottom:0.4rem; }
+  .suggestion-card-text { color:var(--muted); font-size:0.9rem; line-height:1.6; }
+  .suggestion-card-date { color:var(--muted); font-size:0.75rem; margin-top:0.5rem; opacity:0.6; }
+
+  /* COUNTER VISITS section */
+  #visitas { background:var(--surface); border-radius:8px; padding:3rem; }
+
+  @media(max-width:600px) {
+    .nav-links { display:none; }
+    .hero-stats { gap:1.5rem; }
+    .quiz-options { grid-template-columns:1fr; }
+    .modal-grid { grid-template-columns:1fr; }
+    .ranking-input-row { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Geo<span>Mundo</span></div>
+  <ul class="nav-links">
+    <li><a href="#capital-quest" style="color:#7cff6b;font-weight:600;">🎮 Capital Quest</a></li>
+    <li><a href="#continentes">Continentes</a></li>
+    <li><a href="#bandeiras">Bandeiras</a></li>
+    <li><a href="#records">Recordes</a></li>
+    <li><a href="#curiosidades">Curiosidades</a></li>
+    <li><a href="#quiz">Quiz Bandeiras</a></li>
+    <li><a href="#quiz-capitais">Quiz Capitais</a></li>
+    <li><a href="#quiz-tempo">⏱️ Tempo</a></li>
+    <li><a href="#quiz-sequencia">🔥 Sequência</a></li>
+    <li><a href="#quiz-mapa">🌍 Mapa</a></li>
+    <li><a href="#quiz-clickmap">🗺️ Clique</a></li>
+    <li><a href="#jogo">🎮 Capital Quest</a></li>
+    <li><a href="#ranking">Ranking</a></li>
+    <li><a href="#favoritos">Favoritos</a></li>
+    <li><a href="#sugestoes">Sugestões</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:0.8rem;">
+    <a href="geomundo-game.html" target="_blank" style="display:flex;align-items:center;gap:0.5rem;background:linear-gradient(135deg,#7cff6b22,#00e5ff22);border:1px solid #7cff6b55;color:#7cff6b;padding:0.35rem 1rem;border-radius:20px;text-decoration:none;font-family:'Bebas Neue',cursive;font-size:0.95rem;letter-spacing:2px;transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#7cff6b33,#00e5ff33)';this.style.borderColor='#7cff6b'" onmouseout="this.style.background='linear-gradient(135deg,#7cff6b22,#00e5ff22)';this.style.borderColor='#7cff6b55'">🎮 CAPITAL QUEST</a>
+    <div id="streakBadge" onclick="showStreakModal()" title="Sua sequência de dias" style="display:flex;align-items:center;gap:0.4rem;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:0.35rem 0.9rem;cursor:pointer;transition:all 0.2s;user-select:none;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span id="streakFire" style="font-size:1.1rem;">🔥</span>
+      <span id="streakCount" style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent2);letter-spacing:1px;">0</span>
+      <span style="font-size:0.65rem;color:var(--muted);letter-spacing:1px;">DIAS</span>
+    </div>
+    <button id="themeToggle" onclick="toggleTheme()" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:1px;transition:all 0.2s;">🌙 TEMA</button>
+  </div>
+</nav>
+
+<!-- STREAK MODAL -->
+<div id="streakModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;max-width:340px;width:90%;text-align:center;position:relative;">
+    <button onclick="closeStreakModal()" style="position:absolute;top:0.8rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    <div id="streakModalFire" style="font-size:3.5rem;margin-bottom:0.5rem;">🔥</div>
+    <div id="streakModalCount" style="font-family:'Bebas Neue',cursive;font-size:4rem;color:var(--accent2);letter-spacing:4px;line-height:1;">0</div>
+    <div style="font-family:'Bebas Neue',cursive;font-size:1rem;color:var(--muted);letter-spacing:3px;margin-bottom:1.2rem;">DIAS SEGUIDOS</div>
+    <div id="streakWeek" style="display:flex;justify-content:center;gap:0.5rem;margin-bottom:1.2rem;"></div>
+    <div id="streakModalMsg" style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;"></div>
+    <div style="font-size:0.75rem;color:var(--muted);opacity:0.5;">Volte todo dia para manter sua sequência!</div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div id="hero">
+  <span class="hero-globe">🌍</span>
+  <h1 class="hero-title">GEO<span>MUNDO</span></h1>
+  <p class="hero-sub">Explore países, bandeiras, continentes, recordes e curiosidades do nosso planeta.</p>
+  <div class="hero-stats">
+    <div class="stat"><span class="stat-num">195</span><span class="stat-label">Países</span></div>
+    <div class="stat"><span class="stat-num">7</span><span class="stat-label">Continentes</span></div>
+    <div class="stat"><span class="stat-num">5</span><span class="stat-label">Oceanos</span></div>
+    <div class="stat"><span class="stat-num">8B+</span><span class="stat-label">Habitantes</span></div>
+  </div>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <a href="#continentes" class="btn-explore">Explorar Agora</a>
+    <a href="geomundo-game.html" target="_blank" class="btn-explore" style="background:transparent;border:2px solid #7cff6b;color:#7cff6b;box-shadow:0 0 20px #7cff6b33;" onmouseover="this.style.background='#7cff6b22'" onmouseout="this.style.background='transparent'">🎮 Jogar Capital Quest</a>
+  </div>
+</div>
+
+<!-- CONTINENTES -->
+<section id="continentes">
+  <h2 class="section-title">OS <span>CONTINENTES</span></h2>
+  <div class="section-line"></div>
+  <div class="continents-grid" id="continentsGrid"></div>
+</section>
+
+<!-- BANDEIRAS -->
+<section id="bandeiras">
+  <h2 class="section-title">BANDEIRAS <span>DO MUNDO</span></h2>
+  <div class="section-line"></div>
+  <div class="flags-search">
+    <input class="search-input" id="searchInput" placeholder="🔍  Buscar país..." oninput="filterFlags()">
+    <div class="filter-btns-row">
+      <button class="filter-btn active" onclick="filterByContinent('all',this)">🌐 Todos</button>
+      <button class="filter-btn" onclick="filterByContinent('América',this)">🌎 América</button>
+      <button class="filter-btn" onclick="filterByContinent('Europa',this)">🌍 Europa</button>
+      <button class="filter-btn" onclick="filterByContinent('Ásia',this)">🌏 Ásia</button>
+      <button class="filter-btn" onclick="filterByContinent('África',this)">🌍 África</button>
+      <button class="filter-btn" onclick="filterByContinent('Oceania',this)">🏝 Oceania</button>
+    </div>
+  </div>
+  <div class="flags-grid" id="flagsGrid"></div>
+</section>
+
+
+<!-- CAPITAL QUEST -->
+<section id="jogo">
+  <h2 class="section-title">CAPITAL <span>QUEST</span></h2>
+  <div class="section-line"></div>
+  <div class="game-banner">
+    <div class="game-info">
+      <h3>🎮 CAPITAL QUEST</h3>
+      <p>Um jogo de ação top-down onde você derrota inimeiros representando países do mundo e coleta as capitais que eles dropam. Aprenda geografia jogando!</p>
+      <div class="game-features">
+        <span class="game-tag">🌍 195 Países</span>
+        <span class="game-tag">🏛 Capitais reais</span>
+        <span class="game-tag">⚔️ 20 Armas</span>
+        <span class="game-tag">🔢 Ondas infinitas</span>
+        <span class="game-tag">🏆 Ranking online</span>
+        <span class="game-tag">🔑 Códigos secretos</span>
+        <span class="game-tag">📈 Sistema de XP</span>
+        <span class="game-tag">🎯 Top-down 2D</span>
+      </div>
+      <a href="geomundo-game.html" target="_blank" class="btn-play">
+        <span>▶</span> JOGAR AGORA
+      </a>
+    </div>
+    <div class="game-preview">
+      <div>$ capital-quest --start</div>
+      <div class="px">▸ Carregando 195 países...</div>
+      <div class="px">▸ Inicializando mapa 2400×2400...</div>
+      <div class="px">▸ Sistema de armas: <span class="hi">OK</span></div>
+      <div class="px">▸ Supabase ranking: <span class="hi">ONLINE</span></div>
+      <div class="yl">▸ ONDA 1 INICIADA — 6 inimigos</div>
+      <div class="hi">  🇧🇷 Brasil apareceu!</div>
+      <div class="hi">  🇯🇵 Japão apareceu!</div>
+      <div class="rd">  ⚠ Derrote-os para coletar capitais</div>
+      <div class="game-screen-fake">
+        <div class="gsf-item">❤️ HP <span>100/100</span></div>
+        <div class="gsf-item">⭐ NÍVEL <span>1</span></div>
+        <div class="gsf-item">🏛 CAPITAIS <span>0</span></div>
+        <div class="gsf-item">💀 ABATIDOS <span>0</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RECORDS -->
+<section id="records">
+  <h2 class="section-title">RECORDES <span>MUNDIAIS</span></h2>
+  <div class="section-line"></div>
+  <div class="records-list" id="recordsList"></div>
+</section>
+
+<!-- CURIOSIDADES -->
+<section id="curiosidades">
+  <h2 class="section-title">CURIOSIDADES <span>GEOGRÁFICAS</span></h2>
+  <div class="section-line"></div>
+  <div class="facts-grid" id="factsGrid"></div>
+</section>
+
+<!-- QUIZ BANDEIRAS -->
+<section id="quiz">
+  <h2 class="section-title">QUIZ DE <span>BANDEIRAS</span></h2>
+  <div class="section-line"></div>
+
+  <!-- Filtro por continente -->
+  <div class="quiz-continent-filter">
+    <button class="qcf-btn active" onclick="setQuizContinent('all',this)">🌐 Todos</button>
+    <button class="qcf-btn" onclick="setQuizContinent('América',this)">🌎 América</button>
+    <button class="qcf-btn" onclick="setQuizContinent('Europa',this)">🌍 Europa</button>
+    <button class="qcf-btn" onclick="setQuizContinent('África',this)">🌍 África</button>
+    <button class="qcf-btn" onclick="setQuizContinent('Ásia',this)">🌏 Ásia</button>
+    <button class="qcf-btn" onclick="setQuizContinent('Oceania',this)">🏝 Oceania</button>
+  </div>
+
+  <div class="quiz-box">
+    <div class="quiz-score" id="quizScore">Pontuação: 0</div>
+
+    <!-- Território + Bandeira lado a lado -->
+    <div class="quiz-visual-row">
+      <div class="quiz-territory-box">
+        <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">TERRITÓRIO</div>
+        <div id="quizTerritory" style="width:140px;height:100px;display:flex;align-items:center;justify-content:center;">
+          <span style="color:var(--muted);font-size:0.8rem;">carregando...</span>
+        </div>
+      </div>
+      <div class="quiz-flag-box">
+        <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">BANDEIRA</div>
+        <div class="quiz-flag" id="quizFlag"></div>
+      </div>
+    </div>
+
+    <p class="quiz-question" id="quizQuestion">De qual país são estes símbolos?</p>
+    <div id="quizInfo" style="display:none;margin-bottom:0.8rem;font-size:0.85rem;color:var(--muted);text-align:center;"></div>
+    <div class="quiz-options" id="quizOptions"></div>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+      <button class="quiz-hint-btn" id="quizHint" onclick="useHint()">💡 DICA (remove 2 erradas)</button>
+      <button class="quiz-next" id="quizNext" onclick="nextQuestion()">PRÓXIMA →</button>
+    </div>
+  </div>
+</section>
+
+<!-- QUIZ CAPITAIS -->
+<section id="quiz-capitais">
+  <h2 class="section-title">QUIZ DE <span>CAPITAIS</span></h2>
+  <div class="section-line"></div>
+  <div class="quiz-box">
+    <div class="quiz-score" id="capScore">Pontuação: 0</div>
+    <div id="capModeTag" style="text-align:center;font-size:0.72rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;"></div>
+    <div id="capHighlight" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 2rem;text-align:center;margin-bottom:1rem;">
+      <div style="font-family:'Bebas Neue',cursive;font-size:2.2rem;color:var(--accent);letter-spacing:3px;" id="capHighlightText">—</div>
+    </div>
+    <p class="quiz-question" id="capQuestion">—</p>
+    <div class="quiz-options" id="capOptions"></div>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+      <button class="quiz-hint-btn" id="capHint" onclick="useCapHint()">💡 DICA (remove 2 erradas)</button>
+      <button class="quiz-next" id="capNext" onclick="nextCapQuestion()" style="display:none;">PRÓXIMA →</button>
+    </div>
+  </div>
+</section>
+
+<!-- QUIZ CONTRA O TEMPO -->
+<section id="quiz-tempo">
+  <h2 class="section-title">⏱️ CONTRA O <span>TEMPO</span></h2>
+  <div class="section-line"></div>
+  <div class="quiz-box" id="tempoBox">
+
+    <!-- Tela inicial -->
+    <div id="tempoStart" style="text-align:center;padding:2rem 0;">
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:0.5rem;">Responda o máximo de países em</p>
+      <div style="font-family:'Bebas Neue',cursive;font-size:4rem;color:var(--accent);letter-spacing:4px;">60</div>
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:2rem;">segundos!</p>
+      <button class="btn-submit" onclick="startTempoQuiz()" style="font-size:1rem;padding:0.8rem 3rem;letter-spacing:3px;">▶ COMEÇAR</button>
+    </div>
+
+    <!-- Tela do jogo -->
+    <div id="tempoGame" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div class="quiz-score" id="tempoScore" style="margin:0;">Pontuação: 0</div>
+        <div id="tempoClock" style="font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--accent2);letter-spacing:2px;transition:color 0.3s;">60</div>
+      </div>
+      <div id="tempoPulse" style="height:4px;background:var(--accent2);border-radius:2px;margin-bottom:1.2rem;transition:width 1s linear;width:100%;"></div>
+      <div class="quiz-visual-row">
+        <div class="quiz-territory-box">
+          <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">TERRITÓRIO</div>
+          <div id="tempoTerritory" style="width:140px;height:100px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:var(--muted);font-size:0.8rem;">carregando...</span>
+          </div>
+        </div>
+        <div class="quiz-flag-box">
+          <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">BANDEIRA</div>
+          <div class="quiz-flag" id="tempoFlag"></div>
+        </div>
+      </div>
+      <p class="quiz-question" id="tempoQuestion">De qual país são estes símbolos?</p>
+      <div class="quiz-options" id="tempoOptions"></div>
+    </div>
+
+    <!-- Tela de Game Over -->
+    <div id="tempoGameOver" style="display:none;text-align:center;padding:1rem 0;">
+      <div id="tempoGameOverAnim" style="font-size:3rem;margin-bottom:0.5rem;">💀</div>
+      <div style="font-family:'Bebas Neue',cursive;font-size:2.5rem;color:var(--accent2);letter-spacing:4px;">GAME OVER</div>
+      <p style="color:var(--muted);margin:0.5rem 0;">Você acertou</p>
+      <div style="font-family:'Bebas Neue',cursive;font-size:4rem;color:var(--accent);letter-spacing:4px;" id="tempoFinalScore">0</div>
+      <p style="color:var(--muted);margin-bottom:1.5rem;">países em 60 segundos!</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;">
+        <input class="ranking-input" id="tempoRankName" placeholder="Seu nome para o ranking..." maxlength="30" style="max-width:250px;">
+        <button class="btn-submit" onclick="saveTempoRanking()">SALVAR</button>
+      </div>
+      <button onclick="startTempoQuiz()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.6rem 2rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.8rem;letter-spacing:2px;">🔄 JOGAR NOVAMENTE</button>
+    </div>
+  </div>
+</section>
+
+<!-- RANKING CONTRA O TEMPO -->
+<section id="ranking-tempo">
+  <h2 class="section-title">RANKING <span>CONTRA O TEMPO</span></h2>
+  <div class="section-line"></div>
+  <div class="ranking-box">
+    <div class="ranking-list" id="rankingTempoList"></div>
+  </div>
+</section>
+
+<!-- MODO SEQUÊNCIA -->
+<section id="quiz-sequencia">
+  <h2 class="section-title">🔥 MODO <span>SEQUÊNCIA</span></h2>
+  <div class="section-line"></div>
+  <div class="quiz-box">
+    <div id="seqStart" style="text-align:center;padding:2rem 0;">
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Responda quantos países conseguir.<br>Cada erro é marcado — tente chegar longe!</p>
+      <button class="btn-submit" onclick="startSeqQuiz()" style="font-size:1rem;padding:0.8rem 3rem;letter-spacing:3px;">▶ COMEÇAR</button>
+    </div>
+    <div id="seqGame" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+        <div class="quiz-score" id="seqScore" style="margin:0;">✅ 0 &nbsp;|&nbsp; ❌ 0</div>
+        <div id="seqStreak" style="font-family:'Bebas Neue',cursive;font-size:1.4rem;color:var(--accent3);letter-spacing:2px;">🔥 0 seguidas</div>
+      </div>
+      <div class="quiz-visual-row">
+        <div class="quiz-territory-box">
+          <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">TERRITÓRIO</div>
+          <div id="seqTerritory" style="width:140px;height:100px;display:flex;align-items:center;justify-content:center;"><span style="color:var(--muted);font-size:0.8rem;">carregando...</span></div>
+        </div>
+        <div class="quiz-flag-box">
+          <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;">BANDEIRA</div>
+          <div class="quiz-flag" id="seqFlag"></div>
+        </div>
+      </div>
+      <p class="quiz-question">De qual país são estes símbolos?</p>
+      <div class="quiz-options" id="seqOptions"></div>
+      <button class="quiz-next" id="seqNext" onclick="nextSeqQuestion()" style="display:none;margin-top:1rem;">PRÓXIMA →</button>
+    </div>
+    <div id="seqEnd" style="display:none;text-align:center;padding:1rem 0;">
+      <div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--accent);letter-spacing:3px;">RESULTADO</div>
+      <div style="display:flex;gap:2rem;justify-content:center;margin:1rem 0;">
+        <div><div style="font-family:'Bebas Neue',cursive;font-size:3rem;color:var(--accent3);" id="seqFinalCorrect">0</div><div style="color:var(--muted);font-size:0.8rem;">ACERTOS</div></div>
+        <div><div style="font-family:'Bebas Neue',cursive;font-size:3rem;color:var(--accent2);" id="seqFinalWrong">0</div><div style="color:var(--muted);font-size:0.8rem;">ERROS</div></div>
+        <div><div style="font-family:'Bebas Neue',cursive;font-size:3rem;color:var(--accent);" id="seqFinalStreak">0</div><div style="color:var(--muted);font-size:0.8rem;">MAIOR STREAK</div></div>
+      </div>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;">
+        <input class="ranking-input" id="seqRankName" placeholder="Seu nome..." maxlength="30" style="max-width:220px;">
+        <button class="btn-submit" onclick="saveSeqRanking()">SALVAR</button>
+      </div>
+      <button onclick="startSeqQuiz()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.6rem 2rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.8rem;letter-spacing:2px;">🔄 JOGAR NOVAMENTE</button>
+    </div>
+  </div>
+</section>
+
+<!-- ADIVINHE PELO MAPA -->
+<section id="quiz-mapa">
+  <h2 class="section-title">🌍 ADIVINHE PELO <span>MAPA</span></h2>
+  <div class="section-line"></div>
+  <div class="quiz-box">
+    <div class="quiz-score" id="mapaScore">Pontuação: 0</div>
+    <div class="quiz-territory-box" style="margin:0 auto 1.2rem;width:fit-content;">
+      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.5rem;text-align:center;">TERRITÓRIO MISTERIOSO</div>
+      <div id="mapaTerritory" style="width:180px;height:130px;display:flex;align-items:center;justify-content:center;"><span style="color:var(--muted);font-size:0.8rem;">carregando...</span></div>
+    </div>
+    <p class="quiz-question">De qual país é este território?</p>
+    <div class="quiz-options" id="mapaOptions"></div>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+      <button class="quiz-hint-btn" id="mapaHint" onclick="useMapaHint()">💡 DICA (remove 2 erradas)</button>
+      <button class="quiz-next" id="mapaNext" onclick="nextMapaQuestion()" style="display:none;">PRÓXIMA →</button>
+    </div>
+  </div>
+</section>
+
+<!-- CLIQUE NO MAPA -->
+<section id="quiz-clickmap">
+  <h2 class="section-title">🗺️ CLIQUE NO <span>MAPA</span></h2>
+  <div class="section-line"></div>
+  <div class="quiz-box">
+    <div class="quiz-score" id="clickScore">Pontuação: 0</div>
+    <p class="quiz-question" style="margin-bottom:0.5rem;">Clique em: <strong id="clickTarget" style="color:var(--accent);">—</strong></p>
+    <div id="clickFeedback" style="text-align:center;font-size:0.85rem;margin-bottom:0.8rem;min-height:1.4rem;"></div>
+    <div id="leafletMap" style="height:450px;border-radius:8px;border:1px solid var(--border);"></div>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;align-items:center;">
+      <div id="clickConfirmBox" style="display:none;align-items:center;gap:0.8rem;">
+        <span style="color:var(--muted);font-size:0.85rem;" id="clickConfirmText">Confirmar clique aqui?</span>
+        <button onclick="confirmMapClick()" style="background:var(--accent3);border:none;color:var(--bg);padding:0.5rem 1.2rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.8rem;letter-spacing:1px;">✅ CONFIRMAR</button>
+        <button onclick="cancelMapClick()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">✕</button>
+      </div>
+      <button class="quiz-next" id="clickNext" onclick="nextClickQuestion()" style="display:none;">PRÓXIMA →</button>
+    </div>
+    <p style="color:var(--muted);font-size:0.78rem;text-align:center;margin-top:0.5rem;">📍 Use o scroll para dar zoom • Clique no mapa para marcar • Confirme para enviar</p>
+  </div>
+</section>
+<section id="ranking">
+  <h2 class="section-title">RANKING DO <span>QUIZ — BANDEIRAS</span></h2>
+  <div class="section-line"></div>
+  <div class="ranking-box">
+    <div class="ranking-input-row">
+      <input class="ranking-input" id="rankName" placeholder="Seu nome..." maxlength="30">
+      <button class="btn-submit" onclick="saveRanking()">SALVAR PONTUAÇÃO</button>
+    </div>
+    <div class="ranking-list" id="rankingList"></div>
+  </div>
+</section>
+
+<!-- RANKING CAPITAIS -->
+<section id="ranking-capitais">
+  <h2 class="section-title">RANKING DO <span>QUIZ — CAPITAIS</span></h2>
+  <div class="section-line"></div>
+  <div class="ranking-box">
+    <div class="ranking-input-row">
+      <input class="ranking-input" id="rankCapName" placeholder="Seu nome..." maxlength="30">
+      <button class="btn-submit" onclick="saveCapRanking()">SALVAR PONTUAÇÃO</button>
+    </div>
+    <div class="ranking-list" id="rankingCapList"></div>
+  </div>
+</section>
+
+<!-- FAVORITOS -->
+<section id="favoritos" class="favorites-section">
+  <h2 class="section-title">PAÍSES <span>FAVORITOS</span></h2>
+  <div class="section-line"></div>
+  <p style="color:var(--muted);font-size:0.9rem;">Clique em qualquer país nas bandeiras ou no painel dos continentes e toque em ❤️ para favoritar.</p>
+  <div class="fav-grid" id="favGrid"><p class="fav-empty">Nenhum favorito ainda. Explore os países e favorite os que você mais gosta!</p></div>
+</section>
+
+<!-- VISITAS -->
+<section id="visitas">
+  <h2 class="section-title">PAÍSES MAIS <span>VISITADOS</span></h2>
+  <div class="section-line"></div>
+  <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem;">Países que os visitantes mais clicaram para ver os detalhes.</p>
+  <div class="visits-bar" id="visitsBar"></div>
+</section>
+
+<!-- SUGESTÕES -->
+<section id="sugestoes">
+  <h2 class="section-title">SUGESTÕES & <span>FEEDBACK</span></h2>
+  <div class="section-line"></div>
+  <div class="suggestion-box">
+    <div class="suggestion-form">
+      <label>Seu nome</label>
+      <input class="suggestion-input" id="sugName" placeholder="Como você se chama?" maxlength="50">
+      <label>Sua sugestão</label>
+      <textarea class="suggestion-textarea" id="sugText" placeholder="Escreva sua sugestão, ideia ou feedback para o GeoMundo..."></textarea>
+      <button class="btn-submit" style="width:100%" onclick="sendSuggestion()">ENVIAR SUGESTÃO 📬</button>
+      <div class="suggestion-status" id="sugStatus"></div>
+    </div>
+    <h3 style="font-family:'Bebas Neue',cursive;letter-spacing:3px;margin-bottom:1rem;color:var(--accent)">SUGESTÕES DA COMUNIDADE</h3>
+    <div class="suggestions-list" id="suggestionsList"><p style="color:var(--muted)">Ainda não há sugestões. Seja o primeiro!</p></div>
+  </div>
+</section>
+
+<!-- PAINEL DEV SECRETO -->
+<div id="devPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d1520;border-top:2px solid var(--accent);padding:1.5rem 2rem;z-index:9999;font-family:'Space Mono',monospace;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+    <span style="color:var(--accent);font-size:0.9rem;letter-spacing:2px;">🔧 PAINEL DEV — BILLY MODE</span>
+    <button onclick="document.getElementById('devPanel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;">✕</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:700px;margin-bottom:1rem;">
+    <div>
+      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">REMOVER DO RANKING</p>
+      <select id="devTable1Select" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.4rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.78rem;margin-bottom:0.4rem;">
+        <option value="ranking">Bandeiras</option>
+        <option value="ranking_capitais">Capitais</option>
+        <option value="ranking_tempo">Contra o Tempo</option>
+        <option value="ranking_sequencia">Sequência</option>
+      </select>
+      <div style="display:flex;gap:0.5rem;">
+        <input id="devRemoveName1" placeholder="Nome do jogador..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.8rem;">
+        <button onclick="devRemove(document.getElementById('devTable1Select').value,'devRemoveName1','devMsg1')" style="background:#c0392b;border:none;color:white;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">REMOVER</button>
+      </div>
+      <p id="devMsg1" style="color:var(--accent3);font-size:0.78rem;margin-top:0.3rem;min-height:1rem;"></p>
+    </div>
+    <div>
+      <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">FILTRAR TABELA POR</p>
+      <select id="devFilterSelect" onchange="loadDevTable()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.4rem;border-radius:4px;font-family:'Space Mono',monospace;font-size:0.78rem;">
+        <option value="all">Todos os rankings</option>
+        <option value="ranking">Bandeiras</option>
+        <option value="ranking_capitais">Capitais</option>
+        <option value="ranking_tempo">Contra o Tempo</option>
+        <option value="ranking_sequencia">Sequência</option>
+      </select>
+    </div>
+  </div>
+  <div>
+    <p style="color:var(--muted);font-size:0.78rem;letter-spacing:2px;margin-bottom:0.5rem;">TABELA DE PONTUAÇÕES</p>
+    <div id="devTable" style="max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.8rem;font-size:0.78rem;color:var(--text);"></div>
+    <button onclick="loadDevTable()" style="margin-top:0.5rem;background:var(--surface);border:1px solid var(--border);color:var(--accent);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:'Space Mono',monospace;">🔄 ATUALIZAR</button>
+  </div>
+</div>
+
+<footer>
+  <span class="footer-logo">GEOMUNDO</span>
+  <p>Explore o planeta. Conheça o mundo. 🌎</p>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    <span class="modal-flag" id="modalFlag"></span>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-grid" id="modalGrid"></div>
+    <button id="modalFavBtn" onclick="toggleFavorite()" style="margin-top:1.5rem;width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.7rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.85rem;letter-spacing:2px;transition:all 0.2s;">❤️ FAVORITAR PAÍS</button>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const continents = [
+  { name:"América", emoji:"🌎", color:"#ff6b35", countries:34, area:"42,5M km²", desc:"Do Ártico à Patagônia. Lar da Amazônia, das Montanhas Rochosas, do Canal do Panamá e das culturas mais vibrantes do mundo.", highlights:["Brasil","EUA","México","Argentina","Canadá"] },
+  { name:"Europa", emoji:"🌍", color:"#7cff6b", countries:49, area:"10,5M km²", desc:"Berço da democracia moderna, arte renascentista e da Revolução Industrial.", highlights:["Alemanha","França","Itália","Espanha"] },
+  { name:"África", emoji:"🌍", color:"#ffd700", countries:54, area:"30,3M km²", desc:"O continente mais diverso do mundo. Berço da humanidade com 2000+ idiomas.", highlights:["Egito","Nigéria","África do Sul"] },
+  { name:"Ásia", emoji:"🌏", color:"#ff4081", countries:49, area:"44,6M km²", desc:"O maior e mais populoso continente. Das estepes siberianas às praias tropicais.", highlights:["China","Índia","Japão","Coreia do Sul"] },
+  { name:"Oceania", emoji:"🏝️", color:"#18ffff", countries:14, area:"9M km²", desc:"O menor continente habitado, com ecossistemas únicos e culturas milenares aborígenes.", highlights:["Austrália","Nova Zelândia","Fiji"] },
+  { name:"Antártica", emoji:"🧊", color:"#b0bec5", countries:0, area:"14M km²", desc:"O continente mais frio, seco e ventoso da Terra. Recoberto por 70% da água doce mundial.", highlights:["Polo Sul","Geleira Lambert"] },
+];
+
+function codeToEmoji(code) {
+  // Convert ISO 3166-1 alpha-2 to flag emoji using regional indicator symbols
+  return code.toUpperCase().split('').map(c =>
+    String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+  ).join('');
+}
+
+function flagImg(code, size=32) {
+  const emoji = codeToEmoji(code);
+  const px = size;
+  const fontSize = Math.round(px * 0.85);
+  return `<span style="font-size:${fontSize}px;line-height:1;display:inline-block;" title="${code.toUpperCase()}">${emoji}</span>`;
+}
+
+const countries = [
+  // AMÉRICAS (34 países)
+  { code:"ar", name:"Argentina", capital:"Buenos Aires", continent:"América", pop:"46M", area:"2.780.400 km²", currency:"Peso (ARS)", lang:"Espanhol", gdp:"$632 bi", demonym:"Argentino(a)", idh:"0,849", economy:"Agropecuária, petróleo, manufatura. Maior exportador de soja do mundo.", culture:"Tango, literatura (Borges), futebol e mate como símbolo nacional." },
+  { code:"bs", name:"Bahamas", capital:"Nassau", continent:"América", pop:"400K", area:"13.943 km²", currency:"Dólar (BSD)", lang:"Inglês", gdp:"$12 bi", demonym:"Bahamense", idh:"0,812", economy:"Turismo e serviços financeiros dominam a economia.", culture:"Música junkanoo, carnaval vibrante e culinária caribenha." },
+  { code:"bb", name:"Barbados", capital:"Bridgetown", continent:"América", pop:"287K", area:"430 km²", currency:"Dólar (BBD)", lang:"Inglês", gdp:"$5,6 bi", demonym:"Barbadiano(a)", idh:"0,814", economy:"Turismo, manufatura leve e serviços financeiros offshore.", culture:"Críquete, música calipso e cultura afro-caribenha forte." },
+  { code:"bz", name:"Belize", capital:"Belmopã", continent:"América", pop:"441K", area:"22.966 km²", currency:"Dólar (BZD)", lang:"Inglês", gdp:"$3 bi", demonym:"Belizenho(a)", idh:"0,683", economy:"Turismo, agricultura (cana, frutas) e pesca.", culture:"Mistura de culturas maia, crioula e garifuna. Barreira de coral famosa." },
+  { code:"bo", name:"Bolívia", capital:"Sucre/La Paz", continent:"América", pop:"12M", area:"1.098.581 km²", currency:"Boliviano (BOB)", lang:"Espanhol", gdp:"$44 bi", demonym:"Boliviano(a)", idh:"0,698", economy:"Gás natural, mineração (lítio, prata) e agricultura.", culture:"Maior população indígena da América do Sul. Festival de Oruro famoso." },
+  { code:"br", name:"Brasil", capital:"Brasília", continent:"América", pop:"215M", area:"8.510.345 km²", currency:"Real (BRL)", lang:"Português", gdp:"$1,9 tri", demonym:"Brasileiro(a)", idh:"0,754", economy:"Maior economia da América Latina. Agronegócio, petróleo, manufatura e serviços.", culture:"Carnaval, samba, bossa nova, futebol e biodiversidade amazônica únicos." },
+  { code:"ca", name:"Canadá", capital:"Ottawa", continent:"América", pop:"38M", area:"9.984.670 km²", currency:"Dólar CA (CAD)", lang:"Inglês/Francês", gdp:"$2,2 tri", demonym:"Canadense", idh:"0,935", economy:"Petróleo, mineração, manufatura avançada e serviços financeiros.", culture:"Nação bilíngue (inglês/francês). Hockey no gelo e maple syrup são ícones." },
+  { code:"cl", name:"Chile", capital:"Santiago", continent:"América", pop:"19M", area:"756.102 km²", currency:"Peso (CLP)", lang:"Espanhol", gdp:"$317 bi", demonym:"Chileno(a)", idh:"0,860", economy:"Maior produtor de cobre do mundo. Vinho, frutas e serviços financeiros.", culture:"Literatura (Neruda, Mistral), cueca e gastronomia andina." },
+  { code:"co", name:"Colômbia", capital:"Bogotá", continent:"América", pop:"51M", area:"1.141.748 km²", currency:"Peso (COP)", lang:"Espanhol", gdp:"$344 bi", demonym:"Colombiano(a)", idh:"0,752", economy:"Petróleo, café, flores e manufatura. Segundo maior exportador de café do mundo.", culture:"Cumbia, vallenato, carnaval de Barranquilla e cultura cafeeira." },
+  { code:"cr", name:"Costa Rica", capital:"San José", continent:"América", pop:"5,2M", area:"51.100 km²", currency:"Colón (CRC)", lang:"Espanhol", gdp:"$66 bi", demonym:"Costarriquenho(a)", idh:"0,809", economy:"Turismo ecológico, tecnologia e agricultura (banana, café).", culture:"Líder em sustentabilidade. Produz +99% da energia de fontes renováveis." },
+  { code:"cu", name:"Cuba", capital:"Havana", continent:"América", pop:"11M", area:"109.884 km²", currency:"Peso (CUP)", lang:"Espanhol", gdp:"$107 bi", demonym:"Cubano(a)", idh:"0,764", economy:"Turismo, níquel, tabaco e açúcar. Economia mista com forte controle estatal.", culture:"Son, salsa, charutos Havana e medicina reconhecida mundialmente." },
+  { code:"dm", name:"Dominica", capital:"Roseau", continent:"América", pop:"72K", area:"751 km²", currency:"Dólar EC (XCD)", lang:"Inglês", gdp:"$0,6 bi", demonym:"Dominicano(a) (Dominica)", idh:"0,720", economy:"Turismo de natureza, agricultura e pesca.", culture:""Ilha da Natureza". Reservas florestais exuberantes e língua crioula." },
+  { code:"do", name:"República Dominicana", capital:"Santo Domingo", continent:"América", pop:"11M", area:"48.671 km²", currency:"Peso (DOP)", lang:"Espanhol", gdp:"$114 bi", demonym:"Dominicano(a)", idh:"0,767", economy:"Turismo, zonas francas industriais, mineração (ouro) e agro.", culture:"Merengue e bachata originados aqui. Praias do Caribe famosas." },
+  { code:"ec", name:"Equador", capital:"Quito", continent:"América", pop:"18M", area:"283.561 km²", currency:"Dólar (USD)", lang:"Espanhol", gdp:"$108 bi", demonym:"Equatoriano(a)", idh:"0,740", economy:"Petróleo, bananas, camarão e flores. País mega-biodiverso.", culture:"Galápagos, chapéu Panamá (feito no Equador) e música andina." },
+  { code:"sv", name:"El Salvador", capital:"San Salvador", continent:"América", pop:"6,5M", area:"21.041 km²", currency:"Dólar (USD)", lang:"Espanhol", gdp:"$32 bi", demonym:"Salvadorenho(a)", idh:"0,675", economy:"Remessas do exterior, maquila têxtil e agro (café, cana).", culture:"Primeiro país a adotar Bitcoin como moeda legal. Pupusas são prato típico." },
+  { code:"us", name:"Estados Unidos", capital:"Washington D.C.", continent:"América", pop:"335M", area:"9.833.517 km²", currency:"Dólar (USD)", lang:"Inglês", gdp:"$25,5 tri", demonym:"Americano(a)", idh:"0,926", economy:"Maior economia do mundo. Tecnologia (Silicon Valley), finanças, manufatura avançada, defesa e serviços.", culture:"Hollywood, jazz, hip-hop, NASA e cultura pop global. Melting pot de culturas imigrantes." },
+  { code:"gd", name:"Granada", capital:"Saint George's", continent:"América", pop:"123K", area:"344 km²", currency:"Dólar EC (XCD)", lang:"Inglês", gdp:"$1,2 bi", demonym:"Granadino(a)", idh:"0,779", economy:"Turismo, noz-moscada (maior produtor do Caribe) e pesca.", culture:"Chamada de Ilha das Especiarias. Carnaval Spicemas e música soca animados." },
+  { code:"gt", name:"Guatemala", capital:"Cidade da Guatemala", continent:"América", pop:"17M", area:"108.889 km²", currency:"Quetzal (GTQ)", lang:"Espanhol", gdp:"$86 bi", demonym:"Guatemalteco(a)", idh:"0,627", economy:"Café, bananas, palma e remessas. Maior economia da América Central.", culture:"Civilização maia rica. Chichicastenango e Semana Santa de Antigua famosas." },
+  { code:"gy", name:"Guiana", capital:"Georgetown", continent:"América", pop:"790K", area:"214.969 km²", currency:"Dólar (GYD)", lang:"Inglês", gdp:"$15 bi", demonym:"Guianense", idh:"0,714", economy:"Petróleo (descoberta recente), bauxita, açúcar e arroz.", culture:"Única nação anglófona da América do Sul. Grande diversidade étnica." },
+  { code:"ht", name:"Haiti", capital:"Porto Príncipe", continent:"América", pop:"11M", area:"27.750 km²", currency:"Gourde (HTG)", lang:"Crioulo/Francês", gdp:"$21 bi", demonym:"Haitiano(a)", idh:"0,535", economy:"Agricultura, indústria têxtil e remessas do exterior.", culture:"Primeira república negra do mundo (1804). Arte naïf e vodu cultural." },
+  { code:"hn", name:"Honduras", capital:"Tegucigalpa", continent:"América", pop:"10M", area:"112.492 km²", currency:"Lempira (HNL)", lang:"Espanhol", gdp:"$31 bi", demonym:"Hondurenho(a)", idh:"0,621", economy:"Têxtil/maquila, café, bananas e remessas.", culture:"Ruínas maias de Copán e rica biodiversidade marinha (recife de Mesoamérica)." },
+  { code:"jm", name:"Jamaica", capital:"Kingston", continent:"América", pop:"2,9M", area:"10.991 km²", currency:"Dólar (JMD)", lang:"Inglês", gdp:"$16 bi", demonym:"Jamaicano(a)", idh:"0,706", economy:"Turismo, bauxita, alumina e agro (açúcar, café Blue Mountain).", culture:"Reggae, Bob Marley, Usain Bolt e cultura rastafári são ícones mundiais." },
+  { code:"mx", name:"México", capital:"Cidade do México", continent:"América", pop:"130M", area:"1.964.375 km²", currency:"Peso (MXN)", lang:"Espanhol", gdp:"$1,3 tri", demonym:"Mexicano(a)", idh:"0,774", economy:"2ª maior economia da América Latina. Manufatura, petróleo, turismo e agro.", culture:"Civilizações asteca e maia. Mariachi, Dia de Muertos e culinária Patrimônio Cultural." },
+  { code:"ni", name:"Nicarágua", capital:"Manágua", continent:"América", pop:"6,9M", area:"130.370 km²", currency:"Córdoba (NIO)", lang:"Espanhol", gdp:"$16 bi", demonym:"Nicaraguense", idh:"0,667", economy:"Agro (café, cana, gado), indústria têxtil e turismo.", culture:"País dos lagos e vulcões. Poesia nicaraguense reconhecida internacionalmente." },
+  { code:"pa", name:"Panamá", capital:"Cidade do Panamá", continent:"América", pop:"4,4M", area:"75.417 km²", currency:"Balboa (PAB)", lang:"Espanhol", gdp:"$68 bi", demonym:"Panamenho(a)", idh:"0,805", economy:"Canal do Panamá, serviços financeiros, logística e turismo.", culture:"Canal do Panamá liga dois oceanos. Biodiversidade de 10.000 espécies de plantas." },
+  { code:"py", name:"Paraguai", capital:"Assunção", continent:"América", pop:"7M", area:"406.752 km²", currency:"Guarani (PYG)", lang:"Espanhol/Guarani", gdp:"$41 bi", demonym:"Paraguaio(a)", idh:"0,717", economy:"Maior exportador mundial de energia hidrelétrica per capita. Soja e carne.", culture:"País bilíngue (espanhol e guarani). Música harpa paraguaia única." },
+  { code:"pe", name:"Peru", capital:"Lima", continent:"América", pop:"33M", area:"1.285.216 km²", currency:"Sol (PEN)", lang:"Espanhol", gdp:"$242 bi", demonym:"Peruano(a)", idh:"0,762", economy:"Mineração (cobre, ouro), pesca, agro e turismo. Economia em crescimento.", culture:"Machu Picchu, culinária reconhecida mundialmente e civilização inca." },
+  { code:"kn", name:"São Cristóvão e Névis", capital:"Basseterre", continent:"América", pop:"53K", area:"261 km²", currency:"Dólar EC (XCD)", lang:"Inglês", gdp:"$1 bi", demonym:"São-cristovense", idh:"0,777", economy:"Turismo e pequena manufatura.", culture:"Menor nação das Américas. Festival St. Kitts Music famoso." },
+  { code:"lc", name:"Santa Lúcia", capital:"Castries", continent:"América", pop:"184K", area:"616 km²", currency:"Dólar EC (XCD)", lang:"Inglês", gdp:"$2,1 bi", demonym:"São-lucense", idh:"0,715", economy:"Turismo, bananas e serviços financeiros.", culture:"Pitons vulcânicos são Patrimônio da Humanidade. Nobel: Derek Walcott." },
+  { code:"vc", name:"São Vicente e Granadinas", capital:"Kingstown", continent:"América", pop:"111K", area:"389 km²", currency:"Dólar EC (XCD)", lang:"Inglês", gdp:"$0,9 bi", demonym:"São-vicentino(a)", idh:"0,705", economy:"Turismo, bananas e construção.", culture:"Ilhas Granadinas são destino de vela famoso. Carnaval Vincy Mas." },
+  { code:"sr", name:"Suriname", capital:"Paramaribo", continent:"América", pop:"618K", area:"163.820 km²", currency:"Dólar (SRD)", lang:"Holandês", gdp:"$3,8 bi", demonym:"Surinamês(a)", idh:"0,730", economy:"Petróleo, ouro, bauxita e floresta tropical.", culture:"País mais biodiverso per capita do mundo. Mistura única de culturas." },
+  { code:"tt", name:"Trinidad e Tobago", capital:"Porto de Espanha", continent:"América", pop:"1,4M", area:"5.128 km²", currency:"Dólar (TTD)", lang:"Inglês", gdp:"$24 bi", demonym:"Trinitário(a)", idh:"0,810", economy:"Petróleo, gás natural e serviços financeiros.", culture:"Berço do calipso, soca e carnaval caribenho de renome mundial." },
+  { code:"uy", name:"Uruguai", capital:"Montevidéu", continent:"América", pop:"3,5M", area:"176.215 km²", currency:"Peso (UYU)", lang:"Espanhol", gdp:"$68 bi", demonym:"Uruguaio(a)", idh:"0,830", economy:"Agropecuária, turismo e serviços (TI crescente). Estado do bem-estar robusto.", culture:"Maior consumidor de mate per capita. País mais secular e igualitário da América Latina." },
+  { code:"ve", name:"Venezuela", capital:"Caracas", continent:"América", pop:"28M", area:"916.445 km²", currency:"Bolívar (VES)", lang:"Espanhol", gdp:"$482 bi", demonym:"Venezuelano(a)", idh:"0,699", economy:"Maiores reservas de petróleo do mundo. Crise econômica grave nos últimos anos.", culture:"Salsa, joropo llanero e Miss Universo (7 títulos). Diversidade natural enorme." },
+
+  // EUROPA (49 países)
+  { code:"al", name:"Albânia", capital:"Tirana", continent:"Europa", pop:"2,8M", area:"28.748 km²", currency:"Lek (ALL)", lang:"Albanês", gdp:"$22 bi", demonym:"Albanês(a)", idh:"0,789", economy:"Turismo crescente, mineração, agro e remessas.", culture:"País de maioria muçulmana europeu. Cultura de hospitalidade (besa)." },
+  { code:"de", name:"Alemanha", capital:"Berlim", continent:"Europa", pop:"84M", area:"357.114 km²", currency:"Euro (EUR)", lang:"Alemão", gdp:"$4,1 tri", demonym:"Alemão(a)", idh:"0,950", economy:"Maior economia da Europa. Automóveis (VW, BMW, Mercedes), maquinário e química.", culture:"Oktoberfest, filosofia (Kant, Hegel), música (Bach, Beethoven) e engenharia." },
+  { code:"ad", name:"Andorra", capital:"Andorra la Vella", continent:"Europa", pop:"77K", area:"468 km²", currency:"Euro (EUR)", lang:"Catalão", gdp:"$3,3 bi", demonym:"Andorrano(a)", idh:"0,884", economy:"Turismo, comércio livre de impostos e serviços financeiros.", culture:"Um dos países mais longevos do mundo. Ski nos Pireneus famoso." },
+  { code:"am", name:"Armênia", capital:"Erevan", continent:"Europa/Ásia", pop:"3M", area:"29.743 km²", currency:"Dram (AMD)", lang:"Armênio", gdp:"$18 bi", demonym:"Armênio(a)", idh:"0,791", economy:"TI, joias, agro e turismo. Diáspora importante economicamente.", culture:"Primeira nação cristã do mundo (301 d.C.). Alfabeto único e cognac armênio." },
+  { code:"at", name:"Áustria", capital:"Viena", continent:"Europa", pop:"9M", area:"83.871 km²", currency:"Euro (EUR)", lang:"Alemão", gdp:"$471 bi", demonym:"Austríaco(a)", idh:"0,926", economy:"Manufatura de precisão, turismo, serviços financeiros e alta tecnologia.", culture:"Mozart, Beethoven, Freud e a Viena imperial. Música clássica e Natal austríaco." },
+  { code:"az", name:"Azerbaijão", capital:"Baku", continent:"Europa/Ásia", pop:"10M", area:"86.600 km²", currency:"Manat (AZN)", lang:"Azerbaijanês", gdp:"$78 bi", demonym:"Azerbaijano(a)", idh:"0,764", economy:"Petróleo, gás e manufatura. Hub entre Europa e Ásia.", culture:"Xadrez é esporte nacional. Música mugham e tapetes são Patrimônio UNESCO." },
+  { code:"by", name:"Belarus", capital:"Minsk", continent:"Europa", pop:"9,4M", area:"207.600 km²", currency:"Rublo (BYN)", lang:"Bielorrusso/Russo", gdp:"$73 bi", demonym:"Bielorrusso(a)", idh:"0,808", economy:"Indústria pesada, potássio e manufatura. Fortemente ligada à Rússia.", culture:"Arte popular (rushnyk), música folk e cultura eslavônica tradicional." },
+  { code:"be", name:"Bélgica", capital:"Bruxelas", continent:"Europa", pop:"11M", area:"30.528 km²", currency:"Euro (EUR)", lang:"Holandês/Francês", gdp:"$579 bi", demonym:"Belga", idh:"0,937", economy:"Sede da UE e OTAN. Manufatura avançada, farmacêutica e diamantes (Antuérpia).", culture:"Cerveja (+ de 1500 tipos), chocolate e BD (Tintin, Smurfs) são ícones." },
+  { code:"ba", name:"Bósnia e Herzegovina", capital:"Sarajevo", continent:"Europa", pop:"3,3M", area:"51.197 km²", currency:"Marco (BAM)", lang:"Bósnio/Sérvio", gdp:"$24 bi", demonym:"Bósnio(a)", idh:"0,780", economy:"Manufatura, turismo crescente e agro.", culture:"Sarajevo acolheu Olimpíadas de 1984. Mesquita e igrejas lado a lado." },
+  { code:"bg", name:"Bulgária", capital:"Sófia", continent:"Europa", pop:"6,5M", area:"110.879 km²", currency:"Lev (BGN)", lang:"Búlgaro", gdp:"$90 bi", demonym:"Búlgaro(a)", idh:"0,795", economy:"TI, turismo, agro e manufactura. Centro de rosas (maior exportador de óleo de rosa).", culture:"Alfabeto cirílico criado aqui. Coro feminino búlgaro é Patrimônio da UNESCO." },
+  { code:"hr", name:"Croácia", capital:"Zagreb", continent:"Europa", pop:"3,9M", area:"56.594 km²", currency:"Euro (EUR)", lang:"Croata", gdp:"$70 bi", demonym:"Croata", idh:"0,858", economy:"Turismo (Costa Dálmata), manufatura e agro.", culture:"Gravata (cravate) inventada por croatas. Parques de Plitvice encantam turistas." },
+  { code:"dk", name:"Dinamarca", capital:"Copenhague", continent:"Europa", pop:"5,9M", area:"42.924 km²", currency:"Coroa (DKK)", lang:"Dinamarquês", gdp:"$398 bi", demonym:"Dinamarquês(a)", idh:"0,948", economy:"Energia eólica, farmacêutica, manufatura avançada e design.", culture:"Conceito de hygge (conforto/aconchego). LEGO e Hans Christian Andersen." },
+  { code:"sk", name:"Eslováquia", capital:"Bratislava", continent:"Europa", pop:"5,5M", area:"49.035 km²", currency:"Euro (EUR)", lang:"Eslovaco", gdp:"$115 bi", demonym:"Eslovaco(a)", idh:"0,855", economy:"Maior produtor de carros por habitante do mundo. Manufatura e serviços.", culture:"Castelos medievais, folklórico rico e Tatras montanhas." },
+  { code:"si", name:"Eslovênia", capital:"Liubliana", continent:"Europa", pop:"2,1M", area:"20.273 km²", currency:"Euro (EUR)", lang:"Esloveno", gdp:"$62 bi", demonym:"Esloveno(a)", idh:"0,918", economy:"Manufatura avançada, turismo e agro.", culture:"País mais verde da Europa. Ski nos Alpes e cavernas de Postojna famosas." },
+  { code:"es", name:"Espanha", capital:"Madrid", continent:"Europa", pop:"47M", area:"505.990 km²", currency:"Euro (EUR)", lang:"Espanhol", gdp:"$1,4 tri", demonym:"Espanhol(a)", idh:"0,905", economy:"Turismo (2º mais visitado da Europa), agro, manufatura e serviços.", culture:"Flamenco, Gaudí, Picasso, tapas e La Furia Roja (futebol)." },
+  { code:"ee", name:"Estônia", capital:"Tallinn", continent:"Europa", pop:"1,3M", area:"45.228 km²", currency:"Euro (EUR)", lang:"Estoniano", gdp:"$38 bi", demonym:"Estoniano(a)", idh:"0,899", economy:"Tecnologia (Skype, TransferWise), manufatura e turismo.", culture:""Nação digital" referência. Sociedade de canto (Laulupidu) única." },
+  { code:"fi", name:"Finlândia", capital:"Helsinque", continent:"Europa", pop:"5,5M", area:"338.424 km²", currency:"Euro (EUR)", lang:"Finlandês/Sueco", gdp:"$283 bi", demonym:"Finlandês(a)", idh:"0,940", economy:"Tecnologia (Nokia), madeira/papel, engenharia e design.", culture:"País mais feliz do mundo por vários anos. Sauna é ritual nacional." },
+  { code:"fr", name:"França", capital:"Paris", continent:"Europa", pop:"68M", area:"643.801 km²", currency:"Euro (EUR)", lang:"Francês", gdp:"$2,8 tri", demonym:"Francês(a)", idh:"0,910", economy:"Manufatura aeroespacial, luxo, turismo, farmacêutica e agro.", culture:"País mais visitado do mundo. Alta cozinha, moda e filosofia iluminista." },
+  { code:"ge", name:"Geórgia", capital:"Tbilisi", continent:"Europa/Ásia", pop:"3,7M", area:"69.700 km²", currency:"Lari (GEL)", lang:"Georgiano", gdp:"$24 bi", demonym:"Georgiano(a)", idh:"0,812", economy:"Turismo, vinho, mineração e serviços.", culture:"País mais antigo produtor de vinho (8000 a.C.). Polifonia georgiana é Patrimônio UNESCO." },
+  { code:"gr", name:"Grécia", capital:"Atenas", continent:"Europa", pop:"10M", area:"131.957 km²", currency:"Euro (EUR)", lang:"Grego", gdp:"$222 bi", demonym:"Grego(a)", idh:"0,887", economy:"Turismo, transporte marítimo e agro (oliveira, uva).", culture:"Berço da democracia, filosofia e Olimpíadas. Patrimônios da UNESCO únicos." },
+  { code:"hu", name:"Hungria", capital:"Budapeste", continent:"Europa", pop:"9,7M", area:"93.028 km²", currency:"Forint (HUF)", lang:"Húngaro", gdp:"$175 bi", demonym:"Húngaro(a)", idh:"0,846", economy:"Manufatura automotiva, farmacêutica e turismo.", culture:"Língua única (não indo-europeia). Paprica, Rubik's cube e música húngara." },
+  { code:"ie", name:"Irlanda", capital:"Dublin", continent:"Europa", pop:"5,1M", area:"70.273 km²", currency:"Euro (EUR)", lang:"Irlandês/Inglês", gdp:"$529 bi", demonym:"Irlandês(a)", idh:"0,945", economy:"Hub tecnológico europeu (Google, Apple). Farmacêutica e serviços financeiros.", culture:"Dia de São Patrício celebrado globalmente. Música celta, pub culture e literatura." },
+  { code:"is", name:"Islândia", capital:"Reiquiavique", continent:"Europa", pop:"372K", area:"103.000 km²", currency:"Coroa (ISK)", lang:"Islandês", gdp:"$26 bi", demonym:"Islandês(a)", idh:"0,959", economy:"Energia geotérmica, pesca, turismo e alumínio.", culture:"Aurora boreal, vulcões e géiseres. Mais antigo parlamento do mundo (Althing, 930 d.C.)." },
+  { code:"it", name:"Itália", capital:"Roma", continent:"Europa", pop:"60M", area:"301.340 km²", currency:"Euro (EUR)", lang:"Italiano", gdp:"$2,1 tri", demonym:"Italiano(a)", idh:"0,906", economy:"Moda, design, turismo, agroalimentar e manufatura de alta qualidade.", culture:"Maior número de Patrimônios da UNESCO. Culinária, arte renascentista e ópera." },
+  { code:"lv", name:"Letônia", capital:"Riga", continent:"Europa", pop:"1,8M", area:"64.589 km²", currency:"Euro (EUR)", lang:"Letão", gdp:"$40 bi", demonym:"Letão(a)", idh:"0,879", economy:"Serviços financeiros, madeira, manufatura e turismo.", culture:"Festival de canção (Dziesmu svētki) é Patrimônio da UNESCO." },
+  { code:"li", name:"Liechtenstein", capital:"Vaduz", continent:"Europa", pop:"38K", area:"160 km²", currency:"Franco (CHF)", lang:"Alemão", gdp:"$7 bi", demonym:"Liechtensteiniano(a)", idh:"0,935", economy:"Serviços financeiros, manufatura de precisão e turismo.", culture:"Principado com mais empresas registradas que cidadãos. Museus de arte renomados." },
+  { code:"lt", name:"Lituânia", capital:"Vilnius", continent:"Europa", pop:"2,8M", area:"65.300 km²", currency:"Euro (EUR)", lang:"Lituano", gdp:"$67 bi", demonym:"Lituano(a)", idh:"0,882", economy:"TI crescente, manufatura, agro e serviços.", culture:"Último país da Europa a se Cristianizar. Festival de canção Dainų šventė." },
+  { code:"lu", name:"Luxemburgo", capital:"Luxemburgo", continent:"Europa", pop:"660K", area:"2.586 km²", currency:"Euro (EUR)", lang:"Luxemburguês/Francês", gdp:"$85 bi", demonym:"Luxemburguês(a)", idh:"0,930", economy:"Centro financeiro europeu, aço e satélites (SES). Maior PIB per capita da UE.", culture:"País trilíngue (luxemburguês, francês, alemão). Cultura de fronteira única." },
+  { code:"mk", name:"Macedônia do Norte", capital:"Skopje", continent:"Europa", pop:"2,1M", area:"25.713 km²", currency:"Denar (MKD)", lang:"Macedônio", gdp:"$14 bi", demonym:"Macedônio(a)", idh:"0,770", economy:"Agro, mineração, manufatura e turismo.", culture:"Alexandre o Grande era macedônio. Lago Ohrid é Patrimônio da UNESCO." },
+  { code:"mt", name:"Malta", capital:"Valletta", continent:"Europa", pop:"535K", area:"316 km²", currency:"Euro (EUR)", lang:"Maltês/Inglês", gdp:"$18 bi", demonym:"Maltês(a)", idh:"0,917", economy:"Turismo, serviços financeiros e farmacêutica.", culture:"Língua semítica com escrita latina única. Templos pré-históricos (3600 a.C.)." },
+  { code:"md", name:"Moldávia", capital:"Chisinau", continent:"Europa", pop:"2,6M", area:"33.851 km²", currency:"Leu (MDL)", lang:"Romeno", gdp:"$14 bi", demonym:"Moldavo(a)", idh:"0,763", economy:"Agro (vinho, frutas), manufatura e remessas.", culture:"Maior exportador de vinho per capita. Cultura romena com influências russas." },
+  { code:"mc", name:"Mônaco", capital:"Mônaco", continent:"Europa", pop:"36K", area:"2 km²", currency:"Euro (EUR)", lang:"Francês", gdp:"$7,2 bi", demonym:"Monegasco(a)", idh:"0,956", economy:"Serviços financeiros, luxo, turismo e jogos. Maior PIB per capita do mundo.", culture:"Menor país com fronteira marítima. Fórmula 1 (GP de Mônaco) icônico." },
+  { code:"me", name:"Montenegro", capital:"Podgorica", continent:"Europa", pop:"620K", area:"13.812 km²", currency:"Euro (EUR)", lang:"Montenegrino", gdp:"$6,1 bi", demonym:"Montenegrino(a)", idh:"0,832", economy:"Turismo, alumínio e agro.", culture:"País com mais parques nacionais por área na Europa. Nome significa "Montanha Negra"." },
+  { code:"no", name:"Noruega", capital:"Oslo", continent:"Europa", pop:"5M", area:"385.207 km²", currency:"Coroa (NOK)", lang:"Norueguês", gdp:"$579 bi", demonym:"Norueguês(a)", idh:"0,966", economy:"Petróleo, gás, pesca, marinha mercante e fundo soberano bilionário.", culture:"Maior fundo soberano do mundo. Fiordes, aurora boreal e esqui cross-country." },
+  { code:"nl", name:"Países Baixos", capital:"Amsterdã", continent:"Europa", pop:"17M", area:"41.543 km²", currency:"Euro (EUR)", lang:"Holandês", gdp:"$1 tri", demonym:"Holandês(a)", idh:"0,946", economy:"Porto de Roterdã (maior da Europa), agro de alta tecnologia, química e logística.", culture:"Tulipas, moinhos, Rembrandt, Van Gogh e ciclismo como estilo de vida." },
+  { code:"pl", name:"Polônia", capital:"Varsóvia", continent:"Europa", pop:"38M", area:"312.679 km²", currency:"Zloty (PLN)", lang:"Polonês", gdp:"$700 bi", demonym:"Polonês(a)", idh:"0,876", economy:"Maior economia da Europa Central. Manufatura, agro e serviços.", culture:"Chopin, Copérnico, Marie Curie. Pierogi e vodka como símbolos culturais." },
+  { code:"pt", name:"Portugal", capital:"Lisboa", continent:"Europa", pop:"10M", area:"92.212 km²", currency:"Euro (EUR)", lang:"Português", gdp:"$254 bi", demonym:"Português(a)", idh:"0,866", economy:"Turismo, vinho do Porto, cortiça (maior produtor mundial) e serviços.", culture:"Fado (Patrimônio UNESCO), descobrimentos marítimos e azulejos históricos." },
+  { code:"gb", name:"Reino Unido", capital:"Londres", continent:"Europa", pop:"67M", area:"243.610 km²", currency:"Libra (GBP)", lang:"Inglês", gdp:"$3,1 tri", demonym:"Britânico(a)", idh:"0,940", economy:"Serviços financeiros (City of London), manufatura avançada e turismo.", culture:"Beatles, Shakespeare, Premier League, Harry Potter e monarquia britânica." },
+  { code:"cz", name:"República Tcheca", capital:"Praga", continent:"Europa", pop:"10M", area:"78.866 km²", currency:"Coroa (CZK)", lang:"Tcheco", gdp:"$296 bi", demonym:"Tcheco(a)", idh:"0,900", economy:"Manufatura (VW, Skoda), exportações industriais e turismo (Praga).", culture:"Maior consumidor de cerveja per capita do mundo. Kafka e Dvorak." },
+  { code:"ro", name:"Romênia", capital:"Bucareste", continent:"Europa", pop:"19M", area:"238.397 km²", currency:"Leu (RON)", lang:"Romeno", gdp:"$301 bi", demonym:"Romeno(a)", idh:"0,827", economy:"TI crescente, agro, manufatura e turismo (Transilvânia).", culture:"Drácula, arquitetura medieval e tradições folclóricas ricas." },
+  { code:"ru", name:"Rússia", capital:"Moscou", continent:"Europa/Ásia", pop:"145M", area:"17.098.242 km²", currency:"Rublo (RUB)", lang:"Russo", gdp:"$2,2 tri", demonym:"Russo(a)", idh:"0,822", economy:"Maior país do mundo. Petróleo, gás, mineração e armamentos.", culture:"Ballet, literatura (Tolstói, Dostoiévski), espaço (1º satélite) e vodka." },
+  { code:"sm", name:"San Marino", capital:"San Marino", continent:"Europa", pop:"34K", area:"61 km²", currency:"Euro (EUR)", lang:"Italiano", gdp:"$1,9 bi", demonym:"Samarinês(a)", idh:"0,883", economy:"Turismo, bancos e manufatura de precisão.", culture:"República mais antiga do mundo (301 d.C.). Encravado na Itália." },
+  { code:"rs", name:"Sérvia", capital:"Belgrado", continent:"Europa", pop:"6,8M", area:"77.474 km²", currency:"Dinar (RSD)", lang:"Sérvio", gdp:"$63 bi", demonym:"Sérvio(a)", idh:"0,806", economy:"Agro, manufatura, mineração e turismo.", culture:"Nikola Tesla e Novak Djokovic são sérvios. Festival EXIT famoso." },
+  { code:"se", name:"Suécia", capital:"Estocolmo", continent:"Europa", pop:"10M", area:"450.295 km²", currency:"Coroa (SEK)", lang:"Sueco", gdp:"$585 bi", demonym:"Sueco(a)", idh:"0,952", economy:"Tecnologia (Spotify, IKEA, Ericsson), manufatura e sustentabilidade.", culture:"ABBA, IKEA, Pippi Meialonga e tradição de design escandinavo." },
+  { code:"ch", name:"Suíça", capital:"Berna", continent:"Europa", pop:"8,5M", area:"41.285 km²", currency:"Franco (CHF)", lang:"Alemão/Francês", gdp:"$807 bi", demonym:"Suíço(a)", idh:"0,962", economy:"Bancos, relógios, farmacêutica, chocolate e queijos. Neutralidade histórica.", culture:"Referências diretas e democracia direta. Fondue, Roger Federer e Davos." },
+  { code:"tr", name:"Turquia", capital:"Ancara", continent:"Europa/Ásia", pop:"85M", area:"783.562 km²", currency:"Lira (TRY)", lang:"Turco", gdp:"$905 bi", demonym:"Turco(a)", idh:"0,838", economy:"17ª maior economia. Têxtil, turismo, agroindústria e construção civil.", culture:"Istambul liga Europa e Ásia. Tulipa tem origem turca. Kebab e chá de maçã." },
+  { code:"ua", name:"Ucrânia", capital:"Kiev", continent:"Europa", pop:"43M", area:"603.550 km²", currency:"Hryvnia (UAH)", lang:"Ucraniano", gdp:"$160 bi", demonym:"Ucraniano(a)", idh:"0,773", economy:"Agro (celeiro da Europa), manufatura de aço e TI crescente.", culture:"Borsch, bordado tradicional (vyshyvanka) e cultura cossaca histórica." },
+  { code:"va", name:"Vaticano", capital:"Vaticano", continent:"Europa", pop:"800", area:"0,44 km²", currency:"Euro (EUR)", lang:"Latim/Italiano", gdp:"—", demonym:"Vaticano", idh:"N/A", economy:"Financiado por doações e turismo religioso. Banco do Vaticano.", culture:"Menor Estado do mundo. Museus do Vaticano e Sistina de Michelangelo." },
+
+  // ÁFRICA (54 países)
+  { code:"za", name:"África do Sul", capital:"Pretória", continent:"África", pop:"60M", area:"1.219.090 km²", currency:"Rand (ZAR)", lang:"11 idiomas", gdp:"$405 bi", demonym:"Sul-africano(a)", idh:"0,713", economy:"Maior economia industrial da África. Mineração (ouro, diamantes), manufatura e serviços.", culture:"11 línguas oficiais. Ubuntu (humanidade), rugby, cricket e jazz africano." },
+  { code:"ao", name:"Angola", capital:"Luanda", continent:"África", pop:"34M", area:"1.246.700 km²", currency:"Kwanza (AOA)", lang:"Português", gdp:"$106 bi", demonym:"Angolano(a)", idh:"0,590", economy:"Petróleo e diamantes. Economia em reconstrução pós-guerra.", culture:"Kuduro, semba e kizomba. Diversidade étnica de mais de 40 grupos." },
+  { code:"dz", name:"Argélia", capital:"Argel", continent:"África", pop:"45M", area:"2.381.741 km²", currency:"Dinar (DZD)", lang:"Árabe/Berbere", gdp:"$191 bi", demonym:"Argelino(a)", idh:"0,745", economy:"Petróleo e gás natural dominam 95% das exportações.", culture:"Maior país da África. Deserto do Saara cobre 90% do território." },
+  { code:"bj", name:"Benin", capital:"Porto-Novo", continent:"África", pop:"13M", area:"112.622 km²", currency:"Franco CFA (XOF)", lang:"Francês", gdp:"$17 bi", demonym:"Beninense", idh:"0,546", economy:"Agro (algodão), comércio e turismo.", culture:"Berço do vodu como religião oficial. Reino Daomé foi poderoso centro cultural." },
+  { code:"bw", name:"Botsuana", capital:"Gaborone", continent:"África", pop:"2,6M", area:"581.730 km²", currency:"Pula (BWP)", lang:"Inglês/Setswana", gdp:"$19 bi", demonym:"Botsuanense", idh:"0,693", economy:"Diamantes (maior produtor mundial), turismo e pecuária.", culture:"História de sucesso africano. Delta do Okavango é Patrimônio UNESCO." },
+  { code:"bf", name:"Burkina Faso", capital:"Ouagadougou", continent:"África", pop:"22M", area:"274.200 km²", currency:"Franco CFA (XOF)", lang:"Francês", gdp:"$18 bi", demonym:"Burquinabê", idh:"0,449", economy:"Ouro, algodão e agro de subsistência.", culture:"FESPACO (festival de cinema africano mais importante) realizado em Ouagadougou." },
+  { code:"bi", name:"Burundi", capital:"Gitega", continent:"África", pop:"12M", area:"27.834 km²", currency:"Franco (BIF)", lang:"Kirundi/Francês", gdp:"$3,1 bi", demonym:"Burundês(a)", idh:"0,433", economy:"Café, chá e agro. Uma das economias mais pobres do mundo.", culture:"Tambores reais (Ingoma) são Patrimônio UNESCO. Dança e música ricas." },
+  { code:"cv", name:"Cabo Verde", capital:"Praia", continent:"África", pop:"556K", area:"4.033 km²", currency:"Escudo (CVE)", lang:"Português", gdp:"$2,1 bi", demonym:"Cabo-verdiano(a)", idh:"0,662", economy:"Turismo, pesca e remessas. Economia de serviços.", culture:"Morna (música) de Cesária Évora é Patrimônio UNESCO. Identidade atlântica forte." },
+  { code:"cm", name:"Camarões", capital:"Iaundê", continent:"África", pop:"27M", area:"475.442 km²", currency:"Franco CFA (XAF)", lang:"Francês/Inglês", gdp:"$45 bi", demonym:"Camaronês(a)", idh:"0,576", economy:"Petróleo, cacau, café e madeira. "África em miniatura" pela biodiversidade.", culture:"Nação com + de 250 línguas. Leões Indomáveis são ícone do futebol africano." },
+  { code:"td", name:"Chade", capital:"N'Djamena", continent:"África", pop:"17M", area:"1.284.000 km²", currency:"Franco CFA (XAF)", lang:"Francês/Árabe", gdp:"$11 bi", demonym:"Chadiano(a)", idh:"0,394", economy:"Petróleo, gado e agro. País sem saída para o mar.", culture:"Lago Chade (encolheu 90% em 50 anos) é alerta climático mundial." },
+  { code:"km", name:"Comores", capital:"Moroni", continent:"África", pop:"836K", area:"2.235 km²", currency:"Franco (KMF)", lang:"Comoriano/Árabe", gdp:"$1,3 bi", demonym:"Comorense", idh:"0,558", economy:"Agricultura (baunilha, ylang-ylang), pesca e remessas.", culture:"Maior produtor de ylang-ylang do mundo. Cultura swahili e árabe." },
+  { code:"cg", name:"Congo", capital:"Brazzaville", continent:"África", pop:"5,8M", area:"342.000 km²", currency:"Franco CFA (XAF)", lang:"Francês", gdp:"$14 bi", demonym:"Congo-brazzavillense", idh:"0,571", economy:"Petróleo, madeira e mineração.", culture:"Música congolesa (soukous) influenciou a música popular africana." },
+  { code:"cd", name:"República Democrática do Congo", capital:"Kinshasa", continent:"África", pop:"99M", area:"2.344.858 km²", currency:"Franco (CDF)", lang:"Francês", gdp:"$65 bi", demonym:"Congolês(a)", idh:"0,479", economy:"Coltão, cobalto, diamantes e madeira. Enorme potencial hídrico.", culture:"Rumba congolesa é Patrimônio UNESCO. Kinshasa é 3ª maior cidade africana." },
+  { code:"ci", name:"Costa do Marfim", capital:"Yamoussoukro", continent:"África", pop:"27M", area:"322.463 km²", currency:"Franco CFA (XOF)", lang:"Francês", gdp:"$71 bi", demonym:"Marfinense", idh:"0,550", economy:"Maior produtor mundial de cacau. Café, borracha e petróleo.", culture:"Capital econômica Abidjan é o "Paris da África Ocidental"." },
+  { code:"dj", name:"Djibuti", capital:"Djibuti", continent:"África", pop:"1M", area:"23.200 km²", currency:"Franco (DJF)", lang:"Francês/Árabe", gdp:"$4 bi", demonym:"Djiboutiano(a)", idh:"0,515", economy:"Porto estratégico (corredor leste-africano), serviços e base militar.", culture:"Lago Assal é o ponto mais baixo da África. Cultura afar e issa." },
+  { code:"eg", name:"Egito", capital:"Cairo", continent:"África/Ásia", pop:"105M", area:"1.001.450 km²", currency:"Libra Eg. (EGP)", lang:"Árabe", gdp:"$476 bi", demonym:"Egípcio(a)", idh:"0,728", economy:"Turismo, Canal de Suez, remessas e petróleo. Agricultura no Nilo.", culture:"Pirâmides e esfinge são Patrimônios da Humanidade. Berço da civilização." },
+  { code:"er", name:"Eritreia", capital:"Asmara", continent:"África", pop:"3,5M", area:"117.600 km²", currency:"Nakfa (ERN)", lang:"Tigrínia/Árabe", gdp:"$2,1 bi", demonym:"Eritreu(a)", idh:"0,492", economy:"Mineração, agro e pesca. Economia fechada.", culture:"Arquitetura colonial italiana em Asmara (Patrimônio UNESCO)." },
+  { code:"sz", name:"Essuatíni", capital:"Mbabane", continent:"África", pop:"1,2M", area:"17.364 km²", currency:"Lilangeni (SZL)", lang:"Suázi/Inglês", gdp:"$4,7 bi", demonym:"Suazi", idh:"0,611", economy:"Açúcar, têxtil e mineração. Monarca absoluto.", culture:"Incwala e Umhlanga (Dança das Canas) são festivais tradicionais únicos." },
+  { code:"et", name:"Etiópia", capital:"Adis Abeba", continent:"África", pop:"120M", area:"1.104.300 km²", currency:"Birr (ETB)", lang:"Amárico", gdp:"$127 bi", demonym:"Etíope", idh:"0,492", economy:"Café (origem do café!), agro, floricultura e crescimento econômico notável.", culture:"Único país africano nunca colonizado. Calendário etíope tem 13 meses." },
+  { code:"ga", name:"Gabão", capital:"Libreville", continent:"África", pop:"2,3M", area:"267.668 km²", currency:"Franco CFA (XAF)", lang:"Francês", gdp:"$20 bi", demonym:"Gabonês(a)", idh:"0,706", economy:"Petróleo, manganês e madeira. Maior PIB per capita da África Central.", culture:"88% do território coberto por floresta tropical. Gorila ocidental vive aqui." },
+  { code:"gm", name:"Gâmbia", capital:"Banjul", continent:"África", pop:"2,5M", area:"11.295 km²", currency:"Dalasi (GMD)", lang:"Inglês", gdp:"$2,1 bi", demonym:"Gambiano(a)", idh:"0,500", economy:"Turismo, amendoim e pesca. Menor país continental da África.", culture:"Raízes (Roots) de Alex Haley foi localizada aqui. Música jaliba famosa." },
+  { code:"gh", name:"Gana", capital:"Acra", continent:"África", pop:"33M", area:"238.533 km²", currency:"Cedi (GHS)", lang:"Inglês", gdp:"$77 bi", demonym:"Ganês(a)", idh:"0,632", economy:"Ouro, cacau, petróleo e crescimento econômico estável.", culture:"Primeiro país africano independente pós-colonialismo (1957). Kente e highlife." },
+  { code:"gn", name:"Guiné", capital:"Conacri", continent:"África", pop:"13M", area:"245.857 km²", currency:"Franco (GNF)", lang:"Francês", gdp:"$16 bi", demonym:"Guineense", idh:"0,465", economy:"Bauxita (25% das reservas mundiais), ouro e agro.", culture:"Cultura mandinga e fulani. Música djembê reconhecida mundialmente." },
+  { code:"gw", name:"Guiné-Bissau", capital:"Bissau", continent:"África", pop:"2M", area:"36.125 km²", currency:"Franco CFA (XOF)", lang:"Português", gdp:"$1,7 bi", demonym:"Guineense-bissauense", idh:"0,433", economy:"Castanha de caju (maior exportação), pesca e agro.", culture:"Arquipélago Bijagós é reserva da biosfera. Diversidade étnica marcante." },
+  { code:"gq", name:"Guiné Equatorial", capital:"Malabo", continent:"África", pop:"1,4M", area:"28.051 km²", currency:"Franco CFA (XAF)", lang:"Espanhol/Francês", gdp:"$12 bi", demonym:"Equatoguineense", idh:"0,596", economy:"Petróleo e gás. Riqueza concentrada, desigualdade alta.", culture:"Único país africano onde o espanhol é língua oficial. Música bikutsi e makossa." },
+  { code:"ls", name:"Lesoto", capital:"Maseru", continent:"África", pop:"2,2M", area:"30.355 km²", currency:"Loti (LSL)", lang:"Sesoto/Inglês", gdp:"$2,8 bi", demonym:"Lesotano(a)", idh:"0,527", economy:"Água (exporta para África do Sul), diamantes e têxtil.", culture:"País inteiramente encravado na África do Sul. Único reino de montanha na África." },
+  { code:"lr", name:"Libéria", capital:"Monróvia", continent:"África", pop:"5,3M", area:"111.369 km²", currency:"Dólar (LRD)", lang:"Inglês", gdp:"$3,9 bi", demonym:"Liberiano(a)", idh:"0,481", economy:"Borracha, minério de ferro e madeira.", culture:"Fundado por escravos libertos americanos (1847). Único Estado africano sem colonização formal." },
+  { code:"ly", name:"Líbia", capital:"Trípoli", continent:"África", pop:"7M", area:"1.759.540 km²", currency:"Dinar (LYD)", lang:"Árabe", gdp:"$52 bi", demonym:"Líbio(a)", idh:"0,718", economy:"Maior reserva de petróleo da África. Instabilidade política pós-2011.", culture:"Deserto do Saara, arqueologia romana e cultura berbere. Tuaregues históricos." },
+  { code:"mg", name:"Madagascar", capital:"Antananarivo", continent:"África", pop:"28M", area:"587.041 km²", currency:"Ariary (MGA)", lang:"Malgaxe/Francês", gdp:"$14 bi", demonym:"Malgaxe", idh:"0,501", economy:"Vanilha (maior produtor), níquel, safiras e pesca.", culture:"90% da fauna é endêmica. Baobás e lêmures únicos no mundo." },
+  { code:"mw", name:"Maláui", capital:"Lilongwe", continent:"África", pop:"20M", area:"118.484 km²", currency:"Kwacha (MWK)", lang:"Inglês/Chichewa", gdp:"$13 bi", demonym:"Malauíano(a)", idh:"0,512", economy:"Tabaco, chá, açúcar e agro. "Coração caloroso da África".", culture:"Lago Malawi tem mais espécies de peixe de água doce que qualquer lago do mundo." },
+  { code:"ml", name:"Mali", capital:"Bamaco", continent:"África", pop:"22M", area:"1.240.192 km²", currency:"Franco CFA (XOF)", lang:"Francês", gdp:"$19 bi", demonym:"Maliano(a)", idh:"0,428", economy:"Ouro, algodão e gado. Economia de subsistência.", culture:"Timbuktu foi centro de saber islâmico. Música blues africano (precursor do blues americano)." },
+  { code:"ma", name:"Marrocos", capital:"Rabat", continent:"África", pop:"37M", area:"446.550 km²", currency:"Dirham (MAD)", lang:"Árabe/Berbere", gdp:"$142 bi", demonym:"Marroquino(a)", idh:"0,698", economy:"Fosfatos (maior reserva mundial), turismo, agro e manufatura.", culture:"Souks, riads, couscous e música gnawa. Marrakech e Fes são joias culturais." },
+  { code:"mu", name:"Maurício", capital:"Port Louis", continent:"África", pop:"1,3M", area:"2.040 km²", currency:"Rupia (MUR)", lang:"Inglês/Francês", gdp:"$14 bi", demonym:"Mauriciano(a)", idh:"0,804", economy:"Turismo, têxtil, serviços financeiros e TI. Sucesso econômico africano.", culture:"Paraíso tropical com dodo extinto. Diversidade étnica harmoniosa." },
+  { code:"mr", name:"Mauritânia", capital:"Nouakchott", continent:"África", pop:"4,6M", area:"1.030.700 km²", currency:"Uguia (MRU)", lang:"Árabe", gdp:"$10 bi", demonym:"Mauritano(a)", idh:"0,556", economy:"Mineração (ferro), pesca e criação de gado.", culture:"Ultimo país do mundo a abolir a escravidão (1981). Cruzamento árabe-berbere-africano." },
+  { code:"mz", name:"Moçambique", capital:"Maputo", continent:"África", pop:"32M", area:"801.590 km²", currency:"Metical (MZN)", lang:"Português", gdp:"$18 bi", demonym:"Moçambicano(a)", idh:"0,446", economy:"Gás natural, carvão, pesca e agro.", culture:"Ilhas de Moçambique é Patrimônio UNESCO. Musica marrabenta e dança mapiko." },
+  { code:"na", name:"Namíbia", capital:"Windhoek", continent:"África", pop:"2,6M", area:"824.292 km²", currency:"Dólar (NAD)", lang:"Inglês", gdp:"$12 bi", demonym:"Namibiano(a)", idh:"0,615", economy:"Diamantes, urânio, pesca e turismo. Distribuição de renda desigual.", culture:"Deserto do Namibe é o mais antigo do mundo (80M anos). Arte rupestre San." },
+  { code:"ne", name:"Níger", capital:"Niamei", continent:"África", pop:"25M", area:"1.267.000 km²", currency:"Franco CFA (XOF)", lang:"Francês", gdp:"$14 bi", demonym:"Nigerino(a)", idh:"0,400", economy:"Urânio, ouro, petróleo e agro. Uma das economias mais pobres do mundo.", culture:"Caravanas tuaregues, Festival Cure Salee e arquitetura de barro." },
+  { code:"ng", name:"Nigéria", capital:"Abuja", continent:"África", pop:"220M", area:"923.768 km²", currency:"Naira (NGN)", lang:"Inglês", gdp:"$509 bi", demonym:"Nigeriano(a)", idh:"0,535", economy:"Maior economia da África. Petróleo, Nollywood (3ª maior indústria fílmica) e agro.", culture:"Música afrobeats (Wizkid, Burna Boy) conquista o mundo. + 500 línguas faladas." },
+  { code:"cf", name:"República Centro-Africana", capital:"Bangui", continent:"África", pop:"5M", area:"622.984 km²", currency:"Franco CFA (XAF)", lang:"Francês/Sango", gdp:"$2,6 bi", demonym:"Centro-africano(a)", idh:"0,404", economy:"Diamantes, madeira e mineração artesanal.", culture:"Uma das menores economias do mundo. Diversidade de 80 grupos étnicos." },
+  { code:"rw", name:"Ruanda", capital:"Kigali", continent:"África", pop:"13M", area:"26.338 km²", currency:"Franco (RWF)", lang:"Kinyarwanda/Inglês", gdp:"$13 bi", demonym:"Ruandês(a)", idh:"0,543", economy:"Turismo (gorilas), chá, café e TI crescente. Renascimento econômico pós-genocídio.", culture:"País mais limpo da África. Mulheres têm maioria no parlamento (64%)." },
+  { code:"st", name:"São Tomé e Príncipe", capital:"São Tomé", continent:"África", pop:"224K", area:"964 km²", currency:"Dobra (STN)", lang:"Português", gdp:"$0,5 bi", demonym:"Santomense", idh:"0,624", economy:"Cacau, pesca e turismo. Descoberta de petróleo em potencial.", culture:""Roça" como legado colonial único. Biodiversidade exuberante nas ilhas." },
+  { code:"sn", name:"Senegal", capital:"Dakar", continent:"África", pop:"17M", area:"196.722 km²", currency:"Franco CFA (XOF)", lang:"Francês", gdp:"$28 bi", demonym:"Senegalês(a)", idh:"0,511", economy:"Pesca, turismo, fosfatos e remessas.", culture:"Dakar é capital cultural da África Ocidental. Luta tradicional (lamb) e música mbalax." },
+  { code:"sc", name:"Seicheles", capital:"Vitória", continent:"África", pop:"99K", area:"455 km²", currency:"Rupia (SCR)", lang:"Crioulo/Inglês", gdp:"$1,6 bi", demonym:"Seichelense", idh:"0,782", economy:"Turismo de luxo e pesca. Um dos maiores PIBs per capita da África.", culture:"Arquipélago paradisíaco com maior proporção de reservas naturais do mundo (50% da área)." },
+  { code:"sl", name:"Serra Leoa", capital:"Freetown", continent:"África", pop:"8M", area:"71.740 km²", currency:"Leone (SLL)", lang:"Inglês", gdp:"$4,3 bi", demonym:"Serra-leonense", idh:"0,477", economy:"Diamantes, rutilo, bauxita e pesca.", culture:""Freetown" fundada por escravos libertos. Praias paradisíacas e cultura temne/mende." },
+  { code:"so", name:"Somália", capital:"Mogadíscio", continent:"África", pop:"17M", area:"637.657 km²", currency:"Xelim (SOS)", lang:"Somali/Árabe", gdp:"$8 bi", demonym:"Somali", idh:"0,361", economy:"Gado, pesca e remessas. País frágil com progresso gradual.", culture:"Maior litoral da África continental. Poesia e literatura oral somali riquíssimas." },
+  { code:"ss", name:"Sudão do Sul", capital:"Juba", continent:"África", pop:"11M", area:"619.745 km²", currency:"Libra (SSP)", lang:"Inglês", gdp:"$4 bi", demonym:"Sul-sudanês(a)", idh:"0,385", economy:"Petróleo (90% das receitas). Conflitos internos persistem.", culture:"Nação mais jovem do mundo (2011). Dinka e Nuer são maiores grupos étnicos." },
+  { code:"sd", name:"Sudão", capital:"Cartum", continent:"África", pop:"45M", area:"1.861.484 km²", currency:"Libra (SDG)", lang:"Árabe/Inglês", gdp:"$34 bi", demonym:"Sudanês(a)", idh:"0,510", economy:"Ouro, petróleo e agro. Economia em crise.", culture:"Pirâmides núbias superam as egípcias em número. Cultura árabe e africana." },
+  { code:"tz", name:"Tanzânia", capital:"Dodoma", continent:"África", pop:"63M", area:"945.087 km²", currency:"Xelim (TZS)", lang:"Suaíli/Inglês", gdp:"$75 bi", demonym:"Tanzaniano(a)", idh:"0,549", economy:"Turismo (Serengeti/Kilimanjaro), ouro, agro e gás.", culture:"Kilimanjaro é o pico mais alto da África. Swahili é língua franca da África Oriental." },
+  { code:"tg", name:"Togo", capital:"Lomé", continent:"África", pop:"8M", area:"56.785 km²", currency:"Franco CFA (XOF)", lang:"Francês", gdp:"$8,7 bi", demonym:"Togolês(a)", idh:"0,539", economy:"Fosfatos, algodão, cacau e agro.", culture:"Vodu é praticado abertamente. Artesanato e mercado de Lomé são famosos." },
+  { code:"tn", name:"Tunísia", capital:"Tunis", continent:"África", pop:"12M", area:"163.610 km²", currency:"Dinar (TND)", lang:"Árabe", gdp:"$47 bi", demonym:"Tunisiano(a)", idh:"0,740", economy:"Turismo, fosfatos, têxtil e agro (oliveira).", culture:"Cartago, Medina de Tunis (UNESCO). Harissa e couscous são símbolos culinários." },
+  { code:"ug", name:"Uganda", capital:"Campala", continent:"África", pop:"47M", area:"241.038 km²", currency:"Xelim (UGX)", lang:"Inglês/Suaíli", gdp:"$45 bi", demonym:"Ugandês(a)", idh:"0,544", economy:"Café, chá, peixe (tilápia) e agro. Crescimento econômico consistente.", culture:"Fonte do Nilo está em Uganda. Gorilas de montanha e diversidade de pássaros." },
+  { code:"ke", name:"Quênia", capital:"Nairóbi", continent:"África", pop:"55M", area:"580.367 km²", currency:"Xelim (KES)", lang:"Suaíli/Inglês", gdp:"$118 bi", demonym:"Queniano(a)", idh:"0,601", economy:"Turismo, chá, café, horticultura e hub tecnológico (Silicon Savannah).", culture:"Safari (palavra suaíli). Maratona: atletas quenianos dominam o cenário mundial." },
+  { code:"zm", name:"Zâmbia", capital:"Lusaca", continent:"África", pop:"19M", area:"752.618 km²", currency:"Kwacha (ZMW)", lang:"Inglês", gdp:"$29 bi", demonym:"Zambiano(a)", idh:"0,565", economy:"Cobre (maior reserva africana), cobalto e agro.", culture:"Cataratas Vitória (Patrimônio UNESCO). Chitenges (tecido africano) são ícones." },
+  { code:"zw", name:"Zimbábue", capital:"Harare", continent:"África", pop:"16M", area:"390.757 km²", currency:"Dólar ZW (ZWL)", lang:"Inglês/Shona", gdp:"$26 bi", demonym:"Zimbabuano(a)", idh:"0,571", economy:"Mineração (diamantes, platina), agro e turismo.", culture:"Ruínas do Grande Zimbábue (Patrimônio UNESCO). Mbira (instrumento) é símbolo musical." },
+
+  // ÁSIA (44 países — sem os transcontinentais que estão na Europa)
+  { code:"af", name:"Afeganistão", capital:"Cabul", continent:"Ásia", pop:"40M", area:"652.230 km²", currency:"Afgani (AFN)", lang:"Dari/Pashto", gdp:"$14 bi", demonym:"Afegão(a)", idh:"0,462", economy:"Agro, minerais raros e ópio (informal). Economia devastada por conflitos.", culture:"Buzkashi (polo com carcaça de cabra) e tapetes afegãos famosos no mundo." },
+  { code:"sa", name:"Arábia Saudita", capital:"Riade", continent:"Ásia", pop:"35M", area:"2.149.690 km²", currency:"Riyal (SAR)", lang:"Árabe", gdp:"$1,1 tri", demonym:"Saudita", idh:"0,875", economy:"Maior exportador mundial de petróleo. Diversificação em curso (Visão 2030).", culture:"Meca e Medina, cidades mais sagradas do Islã. Cultura beduína e datas." },
+  { code:"bd", name:"Bangladesh", capital:"Dacca", continent:"Ásia", pop:"167M", area:"147.570 km²", currency:"Taka (BDT)", lang:"Bengali", gdp:"$460 bi", demonym:"Bangladeshiano(a)", idh:"0,661", economy:"Têxtil/vestuário (2º maior exportador mundial), remessas e agro (arroz, juta).", culture:"Língua bengali tem movimento de independência único (1952). Rickshaw art famosa." },
+  { code:"bh", name:"Bahrein", capital:"Manama", continent:"Ásia", pop:"1,5M", area:"760 km²", currency:"Dinar (BHD)", lang:"Árabe", gdp:"$44 bi", demonym:"Bahreinense", idh:"0,888", economy:"Petróleo, alumínio, serviços financeiros e turismo.", culture:"Pequeno estado do Golfo com pérolas históricas. Festival de música famoso." },
+  { code:"bn", name:"Brunei", capital:"Bandar Seri Begawan", continent:"Ásia", pop:"437K", area:"5.765 km²", currency:"Dólar (BND)", lang:"Malaio", gdp:"$14 bi", demonym:"Bruneiano(a)", idh:"0,829", economy:"Petróleo e gás natural respondem por 90% das exportações. Sem imposto de renda.", culture:"Sultanato islâmico com Mesquita Omar Ali Saifuddien famosa. Cultura malaia conservadora." },
+  { code:"bt", name:"Butão", capital:"Timphu", continent:"Ásia", pop:"782K", area:"38.394 km²", currency:"Ngultrum (BTN)", lang:"Dzongkha", gdp:"$2,5 bi", demonym:"Butanês(a)", idh:"0,666", economy:"Energia hidrelétrica, turismo de alto valor e agro.", culture:"Único país que mede Felicidade Interna Bruta. Filosofia budista e fortalezas dzong." },
+  { code:"kh", name:"Camboja", capital:"Phnom Penh", continent:"Ásia", pop:"17M", area:"181.035 km²", currency:"Riel (KHR)", lang:"Khmer", gdp:"$30 bi", demonym:"Cambodjano(a)", idh:"0,593", economy:"Turismo (Angkor Wat), têxtil, arroz e pesca.", culture:"Angkor Wat é o maior complexo religioso do mundo. Dança apsara é Patrimônio UNESCO." },
+  { code:"kz", name:"Cazaquistão", capital:"Astana", continent:"Ásia", pop:"19M", area:"2.724.900 km²", currency:"Tenge (KZT)", lang:"Cazaque/Russo", gdp:"$220 bi", demonym:"Cazaque", idh:"0,802", economy:"Petróleo, gás, urânio (maior produtor mundial) e grãos.", culture:"Nação das estepes. Falcoaria (Patrimônio UNESCO) e música dombyra." },
+  { code:"cn", name:"China", capital:"Pequim", continent:"Ásia", pop:"1,4 bi", area:"9.596.960 km²", currency:"Yuan (CNY)", lang:"Mandarim", gdp:"$17,7 tri", demonym:"Chinês(a)", idh:"0,788", economy:"2ª maior economia do mundo. Manufatura, tecnologia, comércio e infraestrutura global.", culture:"Civilização de 5000 anos. Muralha, kung fu, medicina tradicional e cozinha variada." },
+  { code:"cy", name:"Chipre", capital:"Nicósia", continent:"Ásia/Europa", pop:"1,2M", area:"9.251 km²", currency:"Euro (EUR)", lang:"Grego/Turco", gdp:"$28 bi", demonym:"Cipriota", idh:"0,896", economy:"Turismo, serviços financeiros e manufatura leve.", culture:"Ilha da deusa Afrodite. Cultura mesclada grego-cipriota." },
+  { code:"kp", name:"Coreia do Norte", capital:"Pyongyang", continent:"Ásia", pop:"26M", area:"120.538 km²", currency:"Won (KPW)", lang:"Coreano", gdp:"~$28 bi", demonym:"Norte-coreano(a)", idh:"0,733", economy:"Indústria pesada, mineração e armamento. Economia centralmente planificada.", culture:"País mais fechado do mundo. Arirang (festival de massa) impressionante." },
+  { code:"kr", name:"Coreia do Sul", capital:"Seul", continent:"Ásia", pop:"52M", area:"100.210 km²", currency:"Won (KRW)", lang:"Coreano", gdp:"$1,7 tri", demonym:"Sul-coreano(a)", idh:"0,929", economy:"13ª maior economia. Samsung, Hyundai, K-pop, tecnologia e shipbuilding.", culture:"Hallyu (onda cultural): K-pop, K-drama, manhwa. Bulgogi e kimchi mundialmente famosos." },
+  { code:"ae", name:"Emirados Árabes Unidos", capital:"Abu Dhabi", continent:"Ásia", pop:"10M", area:"83.600 km²", currency:"Dirham (AED)", lang:"Árabe", gdp:"$507 bi", demonym:"Emiradense", idh:"0,911", economy:"Petróleo, serviços financeiros, turismo e logística. Diversificação avançada.", culture:"Dubai: arranha-céus, deserto e comércio global. Falcoaria e camel racing." },
+  { code:"ph", name:"Filipinas", capital:"Manila", continent:"Ásia", pop:"114M", area:"300.000 km²", currency:"Peso (PHP)", lang:"Filipino/Inglês", gdp:"$404 bi", demonym:"Filipino(a)", idh:"0,699", economy:"Remessas, BPO (terceirização), eletrônicos e turismo.", culture:"7.641 ilhas. Jeepneys coloridos, karaokê e baile de terno como cultura nacional." },
+  { code:"qa", name:"Catar", capital:"Doha", continent:"Ásia", pop:"2,9M", area:"11.586 km²", currency:"Riyal (QAR)", lang:"Árabe", gdp:"$237 bi", demonym:"Catarense", idh:"0,855", economy:"Maior exportador de GNL do mundo. Maior PIB per capita do Golfo.", culture:"Sede Copa do Mundo 2022. Al Jazeera com sede aqui. Falcoaria tradicional." },
+  { code:"sg", name:"Singapura", capital:"Singapura", continent:"Ásia", pop:"5,9M", area:"728 km²", currency:"Dólar (SGD)", lang:"Inglês/Mandarim", gdp:"$467 bi", demonym:"Singapurense", idh:"0,939", economy:"Hub financeiro e logístico global. Eletrônicos, química e serviços.", culture:"Cidade-estado mais rica da Ásia per capita. Jardins da Baía e culinária de rua UNESCO." },
+  { code:"th", name:"Tailândia", capital:"Bangcoc", continent:"Ásia", pop:"71M", area:"513.120 km²", currency:"Baht (THB)", lang:"Tailandês", gdp:"$544 bi", demonym:"Tailandês(a)", idh:"0,800", economy:"Turismo (2º mais lucrativo da Ásia), eletrônicos, agro e automóveis.", culture:"Único país do Sudeste Asiático nunca colonizado. Muay thai, budismo e mangá de culinária." },
+  { code:"vn", name:"Vietnã", capital:"Hanói", continent:"Ásia", pop:"98M", area:"331.212 km²", currency:"Dong (VND)", lang:"Vietnamita", gdp:"$409 bi", demonym:"Vietnamita", idh:"0,703", economy:"Manufatura (roupas, eletrônicos), turismo e agro (café, arroz).", culture:"Pho, banh mi, Ha Long Bay. País que derrotou EUA e China em guerras históricas." },
+  { code:"in", name:"Índia", capital:"Nova Delhi", continent:"Ásia", pop:"1,4 bi", area:"3.287.263 km²", currency:"Rupia (INR)", lang:"Hindi/Inglês", gdp:"$3,4 tri", demonym:"Indiano(a)", idh:"0,633", economy:"5ª maior economia. TI (Bangalore), farmacêutica, têxtil e agro.", culture:"Bollywood, yoga, budismo/hinduísmo, culinária com especiarias e diversidade linguística." },
+  { code:"id", name:"Indonésia", capital:"Jacarta", continent:"Ásia", pop:"277M", area:"1.904.569 km²", currency:"Rupia (IDR)", lang:"Indonésio", gdp:"$1,3 tri", demonym:"Indonésio(a)", idh:"0,705", economy:"16ª maior economia. Carvão, óleo de palma, manufatura e turismo.", culture:"17.000 ilhas, 700 línguas. Batik (UNESCO), wayang (teatro de sombras) e Bali." },
+  { code:"iq", name:"Iraque", capital:"Bagdá", continent:"Ásia", pop:"42M", area:"438.317 km²", currency:"Dinar (IQD)", lang:"Árabe/Curdo", gdp:"$264 bi", demonym:"Iraquiano(a)", idh:"0,686", economy:"Petróleo (2ª maior reserva OPEP), agro e reconstrução pós-conflito.", culture:"Mesopotâmia — berço da escrita e das primeiras cidades (Ur, Babilônia)." },
+  { code:"ir", name:"Irã", capital:"Teerã", continent:"Ásia", pop:"87M", area:"1.648.195 km²", currency:"Rial (IRR)", lang:"Persa", gdp:"$413 bi", demonym:"Iraniano(a)", idh:"0,774", economy:"Petróleo, gás, petroquímica e manufatura. Sanções internacionais impactam.", culture:"Civilização persa de 2500 anos. Poesia (Rumi), tapetes e arquitetura islâmica." },
+  { code:"il", name:"Israel", capital:"Jerusalém", continent:"Ásia", pop:"9,4M", area:"20.770 km²", currency:"Shekel (ILS)", lang:"Hebraico/Árabe", gdp:"$522 bi", demonym:"Israelense", idh:"0,919", economy:""Nação Startup": alta tecnologia, defesa, farmacêutica e agro de precisão.", culture:"Maior densidade de startups do mundo. Cultura judaica milenar e Mar Morto." },
+  { code:"jp", name:"Japão", capital:"Tóquio", continent:"Ásia", pop:"125M", area:"377.975 km²", currency:"Iene (JPY)", lang:"Japonês", gdp:"$4,2 tri", demonym:"Japonês(a)", idh:"0,920", economy:"3ª maior economia. Toyota, Sony, robótica, automação e serviços.", culture:"Anime, manga, sushi, samurai, cerejeiras (sakura) e código bushido." },
+  { code:"jo", name:"Jordânia", capital:"Amã", continent:"Ásia", pop:"10M", area:"89.342 km²", currency:"Dinar (JOD)", lang:"Árabe", gdp:"$49 bi", demonym:"Jordaniano(a)", idh:"0,720", economy:"Turismo (Petra), fosfatos, potássio e serviços.", culture:"Petra (Patrimônio UNESCO) é Maravilha do Mundo. Mar Morto atrai turistas." },
+  { code:"kw", name:"Kuwait", capital:"Kuwait", continent:"Ásia", pop:"4,3M", area:"17.818 km²", currency:"Dinar (KWD)", lang:"Árabe", gdp:"$183 bi", demonym:"Kuwaitiano(a)", idh:"0,831", economy:"Petróleo (6% das reservas mundiais). Um dos maiores PIBs per capita.", culture:"Dhow (veleiro árabe) e pérolas na cultura histórica. Modernização rápida." },
+  { code:"la", name:"Laos", capital:"Vientiane", continent:"Ásia", pop:"7,4M", area:"236.800 km²", currency:"Kip (LAK)", lang:"Laociano", gdp:"$15 bi", demonym:"Laosiano(a)", idh:"0,607", economy:"Energia hidrelétrica, mineração, turismo e agro.", culture:"País continental do Sudeste Asiático. Espiritualidade budista e templos em Luang Prabang." },
+  { code:"lb", name:"Líbano", capital:"Beirute", continent:"Ásia", pop:"5,5M", area:"10.452 km²", currency:"Libra (LBP)", lang:"Árabe", gdp:"$23 bi", demonym:"Libanês(a)", idh:"0,706", economy:"Serviços financeiros, turismo e diáspora influente. Crise econômica grave.", culture:"Gastronomia árabe renomada (hummus, falafel). Berço do alfabeto fenício." },
+  { code:"my", name:"Malásia", capital:"Kuala Lumpur", continent:"Ásia", pop:"33M", area:"329.847 km²", currency:"Ringgit (MYR)", lang:"Malaio", gdp:"$407 bi", demonym:"Malaio(a)", idh:"0,803", economy:"Eletrônicos, óleo de palma, borracha e petróleo.", culture:"Torres Petronas, cultura malaia-chinesa-indiana mesclada e durian." },
+  { code:"mv", name:"Maldivas", capital:"Malé", continent:"Ásia", pop:"521K", area:"298 km²", currency:"Rufiyaa (MVR)", lang:"Divehi", gdp:"$6,6 bi", demonym:"Maldívio(a)", idh:"0,747", economy:"Turismo (maior exportação) e pesca.", culture:"País mais baixo do mundo (1,5m acima do mar). Em risco de desaparecer pelo aquecimento." },
+  { code:"mn", name:"Mongólia", capital:"Ulan Bator", continent:"Ásia", pop:"3,4M", area:"1.564.116 km²", currency:"Tögrög (MNT)", lang:"Mongol", gdp:"$17 bi", demonym:"Mongol", idh:"0,739", economy:"Mineração (cobre, carvão, ouro) e gado. Economias nômades persistem.", culture:"Maior império contíguo da história. Naadam (festival) e yurta (ger) são símbolos." },
+  { code:"mm", name:"Mianmar", capital:"Naypyidaw", continent:"Ásia", pop:"54M", area:"676.578 km²", currency:"Kyat (MMK)", lang:"Birmanês", gdp:"$65 bi", demonym:"Birmanês(a)", idh:"0,585", economy:"Gás natural, pedras preciosas, teca e agro.", culture:"Pagode Shwedagon de ouro e tradição de marionetes (Patrimônio UNESCO)." },
+  { code:"np", name:"Nepal", capital:"Katmandu", continent:"Ásia", pop:"30M", area:"147.181 km²", currency:"Rupia (NPR)", lang:"Nepalês", gdp:"$40 bi", demonym:"Nepalês(a)", idh:"0,602", economy:"Turismo (Himalaia), energia hidrelétrica e remessas.", culture:"Monte Everest, budismo e hinduísmo lado a lado. Gorkhas são guerreiros lendários." },
+  { code:"om", name:"Omã", capital:"Mascate", continent:"Ásia", pop:"4,5M", area:"309.500 km²", currency:"Rial (OMR)", lang:"Árabe", gdp:"$104 bi", demonym:"Omanês(a)", idh:"0,816", economy:"Petróleo, turismo e logística. Diversificação em andamento.", culture:"Diplomacia ativa de não-alinhamento. Incenso e khanjar (adaga) são símbolos." },
+  { code:"pk", name:"Paquistão", capital:"Islamabad", continent:"Ásia", pop:"231M", area:"881.913 km²", currency:"Rupia (PKR)", lang:"Urdu/Inglês", gdp:"$376 bi", demonym:"Paquistanês(a)", idh:"0,544", economy:"Têxtil, agro, remessas e farmacêutica.", culture:"Civilização do Indo (Mohenjo-Daro). Qawwali (música sufi) e cricket são paixões." },
+  { code:"kg", name:"Quirguistão", capital:"Bisqueque", continent:"Ásia", pop:"6,7M", area:"199.951 km²", currency:"Som (KGS)", lang:"Quirguiz/Russo", gdp:"$11 bi", demonym:"Quirguistanês(a)", idh:"0,692", economy:"Ouro, agro e turismo de montanha.", culture:"Cultura nômade (yurta). Manas é a maior epopeia oral do mundo." },
+  { code:"tj", name:"Tajiquistão", capital:"Duchambe", continent:"Ásia", pop:"10M", area:"143.100 km²", currency:"Somoni (TJS)", lang:"Tajique", gdp:"$10 bi", demonym:"Tadjique", idh:"0,685", economy:"Alumínio, ouro, algodão e remessas.", culture:"Herança persa-zoroastriana. Poesia persa clássica (Rudaki) e música shashmaqam." },
+  { code:"tm", name:"Turcomenistão", capital:"Asgabate", continent:"Ásia", pop:"6M", area:"488.100 km²", currency:"Manat (TMT)", lang:"Turcomeno", gdp:"$59 bi", demonym:"Turcomeno(a)", idh:"0,745", economy:"Gás natural (4ª maior reserva). Economia fortemente estatal.", culture:"Porta do Inferno (cratera de gás em chamas há 50 anos). Tapetes turcomenos famosos." },
+  { code:"uz", name:"Uzbequistão", capital:"Tashkent", continent:"Ásia", pop:"35M", area:"447.400 km²", currency:"Som (UZS)", lang:"Uzbeque", gdp:"$80 bi", demonym:"Uzbeque", idh:"0,727", economy:"Gás, algodão, ouro e turismo crescente (Rota da Seda).", culture:"Samarcanda e Bukhara foram joias da Rota da Seda. Arquitetura islâmica espetacular." },
+  { code:"ye", name:"Iêmen", capital:"Sanaa", continent:"Ásia", pop:"33M", area:"527.968 km²", currency:"Rial (YER)", lang:"Árabe", gdp:"$21 bi", demonym:"Iemenita", idh:"0,455", economy:"Petróleo, agro e pesca. Guerra civil devastante desde 2015.", culture:"Cidade antiga de Sanaa (UNESCO). Café mocha tem nome de cidade iemenita." },
+  { code:"sy", name:"Síria", capital:"Damasco", continent:"Ásia", pop:"21M", area:"185.180 km²", currency:"Libra (SYP)", lang:"Árabe", gdp:"$11 bi", demonym:"Sírio(a)", idh:"0,577", economy:"Petróleo, agro e manufatura. Economia destruída pela guerra civil.", culture:"Damasco é cidade habitada mais antiga do mundo. Jabón de Alepo (sabão) famoso." },
+  { code:"lk", name:"Sri Lanka", capital:"Sri Jayawardenepura", continent:"Ásia", pop:"22M", area:"65.610 km²", currency:"Rupia (LKR)", lang:"Cingalês/Tâmil", gdp:"$84 bi", demonym:"Cingalês(a) / Sri-lankês(a)", idh:"0,782", economy:"Chá (Ceylon), turismo, têxtil e remessas. Recuperação após crise econômica de 2022.", culture:"Dente de Buda em Kandy (UNESCO). Chá de Ceilão é mundialmente famoso. Cricket e dança Kandyan." },
+  { code:"tl", name:"Timor-Leste", capital:"Díli", continent:"Ásia", pop:"1,3M", area:"14.874 km²", currency:"Dólar (USD)", lang:"Tetum/Português", gdp:"$2,1 bi", demonym:"Timorense", idh:"0,607", economy:"Petróleo e gás (maioria das receitas), agro e turismo.", culture:"Nação mais jovem da Ásia (2002). Tais (tecido) e cultura lusófona única na Ásia." },
+  // transcontinentais que aparecem também na Ásia
+  { code:"am", name:"Armênia", capital:"Erevan", continent:"Ásia/Europa", pop:"3M", area:"29.743 km²", currency:"Dram (AMD)", lang:"Armênio", gdp:"$18 bi", demonym:"Armênio(a)", idh:"0,791", economy:"TI, joias, agro e turismo. Diáspora importante economicamente.", culture:"Primeira nação cristã do mundo (301 d.C.). Alfabeto único e cognac armênio." },
+  { code:"az", name:"Azerbaijão", capital:"Baku", continent:"Ásia/Europa", pop:"10M", area:"86.600 km²", currency:"Manat (AZN)", lang:"Azerbaijanês", gdp:"$78 bi", demonym:"Azerbaijano(a)", idh:"0,764", economy:"Petróleo, gás e manufatura. Hub entre Europa e Ásia.", culture:"Xadrez é esporte nacional. Música mugham e tapetes são Patrimônio UNESCO." },
+  { code:"ge", name:"Geórgia", capital:"Tbilisi", continent:"Ásia/Europa", pop:"3,7M", area:"69.700 km²", currency:"Lari (GEL)", lang:"Georgiano", gdp:"$24 bi", demonym:"Georgiano(a)", idh:"0,812", economy:"Turismo, vinho, mineração e serviços.", culture:"País mais antigo produtor de vinho (8000 a.C.). Polifonia georgiana é Patrimônio UNESCO." },
+  { code:"cy", name:"Chipre", capital:"Nicósia", continent:"Ásia/Europa", pop:"1,2M", area:"9.251 km²", currency:"Euro (EUR)", lang:"Grego/Turco", gdp:"$28 bi", demonym:"Cipriota", idh:"0,896", economy:"Turismo, serviços financeiros e manufatura leve.", culture:"Ilha da deusa Afrodite. Cultura mesclada grego-cipriota." },
+  { code:"tr", name:"Turquia", capital:"Ancara", continent:"Ásia/Europa", pop:"85M", area:"783.562 km²", currency:"Lira (TRY)", lang:"Turco", gdp:"$905 bi", demonym:"Turco(a)", idh:"0,838", economy:"17ª maior economia. Têxtil, turismo, agroindústria e construção civil.", culture:"Istambul liga Europa e Ásia. Tulipa tem origem turca. Kebab e chá de maçã." },
+  { code:"ru", name:"Rússia", capital:"Moscou", continent:"Ásia/Europa", pop:"145M", area:"17.098.242 km²", currency:"Rublo (RUB)", lang:"Russo", gdp:"$2,2 tri", demonym:"Russo(a)", idh:"0,822", economy:"Maior país do mundo. Petróleo, gás, mineração e armamentos.", culture:"Ballet, literatura (Tolstói, Dostoiévski), espaço (1º satélite) e vodka." },
+  { code:"eg", name:"Egito", capital:"Cairo", continent:"Ásia/África", pop:"105M", area:"1.001.450 km²", currency:"Libra Eg. (EGP)", lang:"Árabe", gdp:"$476 bi", demonym:"Egípcio(a)", idh:"0,728", economy:"Turismo, Canal de Suez, remessas e petróleo. Agricultura no Nilo.", culture:"Pirâmides e esfinge são Patrimônios da Humanidade. Berço da civilização." },
+
+  // OCEANIA (14 países)
+  { code:"au", name:"Austrália", capital:"Camberra", continent:"Oceania", pop:"26M", area:"7.692.024 km²", currency:"Dólar AU (AUD)", lang:"Inglês", gdp:"$1,7 tri", demonym:"Australiano(a)", idh:"0,946", economy:"Mineração (ferro, carvão, ouro), agro, turismo e serviços financeiros.", culture:"Canguru, koala, Grande Recife de Coral. Aborígenes têm cultura de 65.000 anos." },
+  { code:"nz", name:"Nova Zelândia", capital:"Wellington", continent:"Oceania", pop:"5M", area:"270.467 km²", currency:"Dólar NZ (NZD)", lang:"Inglês/Maori", gdp:"$244 bi", demonym:"Neozelandês(a)", idh:"0,939", economy:"Agro (leite, carne, lã), turismo e serviços.", culture:"Haka dos Maori. Tolkien filmou Senhor dos Anéis aqui. Primeiro país com voto feminino." },
+  { code:"pg", name:"Papua Nova Guiné", capital:"Port Moresby", continent:"Oceania", pop:"10M", area:"462.840 km²", currency:"Kina (PGK)", lang:"Tok Pisin/Inglês", gdp:"$29 bi", demonym:"Papua-guinéu(a)", idh:"0,558", economy:"Mineração (ouro, cobre), petróleo, gás e agro.", culture:"+ de 800 línguas (país com maior diversidade linguística). Dança sing-sing famosa." },
+  { code:"fj", name:"Fiji", capital:"Suva", continent:"Oceania", pop:"930K", area:"18.274 km²", currency:"Dólar (FJD)", lang:"Inglês/Fijiano", gdp:"$4,6 bi", demonym:"Fijiano(a)", idh:"0,730", economy:"Turismo, açúcar e pesca.", culture:"Rugby é paixão nacional. Cultura iTaukei de cerimônias kava e dança meke." },
+  { code:"sb", name:"Ilhas Salomão", capital:"Honiara", continent:"Oceania", pop:"720K", area:"28.896 km²", currency:"Dólar (SBD)", lang:"Inglês", gdp:"$1,6 bi", demonym:"Salomonense", idh:"0,547", economy:"Madeira, peixe, mineração e agro.", culture:"Melanésia rica em diversidade. Crânios de ancestra decoram casas tradicionais." },
+  { code:"vu", name:"Vanuatu", capital:"Port Vila", continent:"Oceania", pop:"330K", area:"12.189 km²", currency:"Vatu (VUV)", lang:"Bislama/Inglês", gdp:"$1 bi", demonym:"Vanuatense", idh:"0,596", economy:"Turismo, agro e pesca.", culture:"Land diving (bungee jump original) de Pentecost. + 100 línguas para 300.000 pessoas." },
+  { code:"ws", name:"Samoa", capital:"Apia", continent:"Oceania", pop:"222K", area:"2.842 km²", currency:"Tala (WST)", lang:"Samoano/Inglês", gdp:"$0,9 bi", demonym:"Samoano(a)", idh:"0,707", economy:"Agro, pesca, turismo e remessas.", culture:"Tatoo (palavra polinésia para tatuagem) surgiu aqui. Cultura fa'asamoa muito preservada." },
+  { code:"to", name:"Tonga", capital:"Nukualofa", continent:"Oceania", pop:"100K", area:"747 km²", currency:"Paʻanga (TOP)", lang:"Tongano/Inglês", gdp:"$0,5 bi", demonym:"Tonganês(a)", idh:"0,740", economy:"Agro, pesca, turismo e remessas.", culture:"Único reino do Pacífico Sul que manteve independência. Cultura polinésia forte." },
+  { code:"ki", name:"Kiribati", capital:"Tarawa do Sul", continent:"Oceania", pop:"120K", area:"811 km²", currency:"Dólar AU (AUD)", lang:"Gilbertês/Inglês", gdp:"$0,2 bi", demonym:"Kiribatiano(a)", idh:"0,624", economy:"Pesca e turismo. Ameaçado pelo aumento do nível do mar.", culture:"Único país que existe nos 4 hemisférios. Dança te buki é ritual cultural." },
+  { code:"fm", name:"Micronésia", capital:"Palikir", continent:"Oceania", pop:"115K", area:"702 km²", currency:"Dólar (USD)", lang:"Inglês", gdp:"$0,4 bi", demonym:"Micronésio(a)", idh:"0,628", economy:"Pesca, turismo e ajuda dos EUA.", culture:"Pedras Rai de Yap são moeda tradicional gigante. Mergulho de classe mundial." },
+  { code:"mh", name:"Ilhas Marshall", capital:"Majuro", continent:"Oceania", pop:"42K", area:"181 km²", currency:"Dólar (USD)", lang:"Marshallês/Inglês", gdp:"$0,3 bi", demonym:"Marshalês(a)", idh:"0,639", economy:"Pesca, turismo e ajuda dos EUA.", culture:"Bikini Atoll (UNESCO) foi local de testes nucleares. Velas tradicionais outrigger." },
+  { code:"nr", name:"Nauru", capital:"Yaren", continent:"Oceania", pop:"10K", area:"21 km²", currency:"Dólar AU (AUD)", lang:"Nauruano/Inglês", gdp:"$0,1 bi", demonym:"Nauruano(a)", idh:"0,703", economy:"Renda de fosfato esgotada. Agora depende de ajuda externa e pesca.", culture:"Menor república do mundo (21 km²). Foi segundo maior PIB per capita na década de 1970." },
+  { code:"pw", name:"Palau", capital:"Ngerulmud", continent:"Oceania", pop:"18K", area:"459 km²", currency:"Dólar (USD)", lang:"Palauano/Inglês", gdp:"$0,3 bi", demonym:"Palauno(a)", idh:"0,767", economy:"Turismo (mergulho), pesca e ajuda dos EUA.", culture:"Lago Medusa: único lago do mundo com águas-vivas sem veneno. Recife prístino." },
+  { code:"tv", name:"Tuvalu", capital:"Funafuti", continent:"Oceania", pop:"11K", area:"26 km²", currency:"Dólar AU (AUD)", lang:"Tuvaluano/Inglês", gdp:"$0,06 bi", demonym:"Tuvaluano(a)", idh:"0,641", economy:"Pesca, venda do domínio .tv e ajuda externa. 4ª menor economia do mundo.", culture:"Nação ameaçada de desaparecer pelo aquecimento global. Dança fatele é símbolo cultural." },
+];
+
+const records = [
+  { medal:"🥇", title:"Maior País do Mundo", desc:"A Rússia ocupa 11% de toda a superfície terrestre", value:"17,1M km²" },
+  { medal:"🥇", title:"Menor País do Mundo", desc:"O Vaticano é menor que muitos bairros", value:"0,44 km²" },
+  { medal:"🏔️", title:"Montanha mais Alta", desc:"Monte Everest, no Nepal/China (acima do nível do mar)", value:"8.848 m" },
+  { medal:"🌊", title:"Fossa mais Profunda", desc:"Fossa das Marianas, no Oceano Pacífico", value:"11.034 m" },
+  { medal:"🌊", title:"Maior Oceano", desc:"O Oceano Pacífico cobre mais de 165 milhões de km²", value:"165M km²" },
+  { medal:"🏜️", title:"Maior Deserto Quente", desc:"Deserto do Saara, no norte da África", value:"9,2M km²" },
+  { medal:"🌊", title:"Maior Lago", desc:"Mar Cáspio — tecnicamente o maior lago do mundo", value:"371.000 km²" },
+  { medal:"🌿", title:"Maior Floresta", desc:"Floresta Amazônica, na América do Sul", value:"5,5M km²" },
+  { medal:"💧", title:"Rio mais Extenso", desc:"Rio Amazonas, na América do Sul — o maior do mundo em volume e extensão", value:"6.992 km" },
+  { medal:"🗻", title:"Pico mais Baixo do Mundo", desc:"Ponto mais baixo: Mar Morto, na Jordânia/Israel", value:"-430 m" },
+  { medal:"👥", title:"País mais Populoso", desc:"Índia superou a China como o país mais populoso em 2023", value:"1,44 bilhão" },
+  { medal:"🌡️", title:"Lugar mais Frio", desc:"Estação Vostok, Antártica — temperatura registrada", value:"-89,2°C" },
+];
+
+const facts = [
+  { icon:"🌊", title:"OCEANOS DO MUNDO", text:"Os oceanos cobrem 71% da superfície da Terra. São eles: Pacífico, Atlântico, Índico, Ártico e Antártico (Austral).", num:"01" },
+  { icon:"🏔️", title:"TECTÔNICA DE PLACAS", text:"A Terra possui 15 placas tectônicas principais. Elas se movem cerca de 2-5 cm por ano — na mesma velocidade que suas unhas crescem.", num:"02" },
+  { icon:"🗺️", title:"MERIDIANO DE GREENWICH", text:"O Meridiano de Greenwich (0°) divide a Terra em hemisfério oriental e ocidental. Ele passa pelo Reino Unido, França, Espanha, Argélia, Mali, Burkina Faso, Togo e Gana. No lado oposto do globo (180°) está a Linha Internacional de Data, que passa por Kiribati, Fiji e Rússia.", num:"03" },
+  { icon:"☀️", title:"LINHA DO EQUADOR", text:"A Linha do Equador passa por 13 países, incluindo o Brasil, Equador, Colômbia, Congo, Quênia, Indonésia e Kiribati.", num:"04" },
+  { icon:"🧭", title:"FUSO HORÁRIO", text:"A Terra tem 24 fusos horários. A França é o país com mais fusos — são 12 no total devido aos seus territórios ultramarinos. A Rússia atravessa 11 fusos. A China, apesar de seu tamanho, oficialmente usa apenas um.", num:"05" },
+  { icon:"🌋", title:"ANEL DE FOGO", text:"75% dos vulcões do mundo ficam no Anel de Fogo do Pacífico, uma região que vai do Chile até o Japão.", num:"06" },
+  { icon:"🌊", title:"ÁGUA DOCE", text:"Apenas 3% da água da Terra é doce. Desses 3%, cerca de 69% está congelada em geleiras e calotas polares — sendo a Antártica responsável pela maior parte. Menos de 1% da água doce do planeta está acessível para consumo humano.", num:"07" },
+  { icon:"🧊", title:"ANTÁRTICA", text:"A Antártica contém 90% de todo o gelo do planeta e cerca de 70% de toda a água doce mundial. Se todo esse gelo derretesse, o nível do mar subiria aproximadamente 60 metros, inundando a maioria das cidades costeiras do mundo.", num:"11" },
+  { icon:"🌐", title:"PAÍSES INTERTRAVADOS", text:"Lesoto, San Marino e Vaticano são países totalmente cercados por outro país único. Lesoto fica dentro da África do Sul, San Marino e Vaticano dentro da Itália.", num:"08" },
+  { icon:"🏝️", title:"ARQUIPÉLAGOS", text:"A Indonésia tem mais de 17.000 ilhas — o maior arquipélago do mundo. Cerca de 6.000 são habitadas.", num:"09" },
+  { icon:"🌿", title:"BIODIVERSIDADE", text:"O Brasil abriga mais de 20% de todas as espécies vivas do planeta, incluindo 55.000 espécies de plantas catalogadas.", num:"10" },
+
+  { icon:"🌍", title:"AFRICA — BERÇO DA HUMANIDADE", text:"Os fósseis humanos mais antigos (Homo sapiens) foram encontrados em Marrocos com ~300.000 anos. A África tem mais países (54) que qualquer outro continente.", num:"12" },
+];
+
+// ===== RENDER CONTINENTS =====
+const grid = document.getElementById('continentsGrid');
+let activePanel = null;
+let activeCard = null;
+
+continents.forEach((c, idx) => {
+  const el = document.createElement('div');
+  el.className = 'continent-card reveal';
+  el.style.setProperty('--card-accent', c.color);
+  el.innerHTML = `
+    <span class="continent-emoji">${c.emoji}</span>
+    <div class="continent-name">${c.name}</div>
+    <div class="continent-info">
+      <strong style="color:${c.color}">${c.countries}</strong> países &nbsp;·&nbsp; Área: <strong style="color:${c.color}">${c.area}</strong><br><br>
+      ${c.desc}
+    </div>
+    <span class="continent-tag">${c.highlights.join(' · ')}</span>
+  `;
+
+  // Panel element
+  const panel = document.createElement('div');
+  panel.className = 'continent-panel';
+  panel.innerHTML = `
+    <div class="panel-header">
+      <span class="panel-title">🌍 Países da ${c.name}</span>
+      <input class="panel-search" placeholder="🔍 Filtrar países..." oninput="filterPanel(this, '${c.name}')">
+    </div>
+    <div class="panel-countries" id="panel-${idx}"></div>
+  `;
+
+  el.onclick = () => {
+    const isOpen = panel.classList.contains('open');
+    // close any open panel
+    if (activePanel && activePanel !== panel) {
+      activePanel.classList.remove('open');
+      activeCard.classList.remove('selected');
+    }
+    if (isOpen) {
+      panel.classList.remove('open');
+      el.classList.remove('selected');
+      activePanel = null; activeCard = null;
+    } else {
+      panel.classList.add('open');
+      el.classList.add('selected');
+      activePanel = panel; activeCard = el;
+      renderPanelCountries(idx, c.name, '');
+    }
+  };
+
+  grid.appendChild(el);
+  grid.appendChild(panel);
+});
+
+function getContinentCountries(contName, q) {
+  const seen = new Set();
+  return countries.filter(c => {
+    const parts = c.continent.split('/');
+    const matchCont = contName === 'Antártica' ? false : parts.some(p => p.trim() === contName);
+    const matchQ = !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.capital.toLowerCase().includes(q.toLowerCase());
+    if (matchCont && matchQ && !seen.has(c.code)) {
+      seen.add(c.code);
+      return true;
+    }
+    return false;
+  });
+}
+
+function renderPanelCountries(idx, contName, q) {
+  const container = document.getElementById(`panel-${idx}`);
+  container.innerHTML = '';
+  const list = getContinentCountries(contName, q);
+  if (list.length === 0) {
+    container.innerHTML = `<div class="panel-empty">Nenhum país encontrado.</div>`;
+    return;
+  }
+  list.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'panel-country-row';
+    row.style.animationDelay = `${i * 30}ms`;
+    row.innerHTML = `<span class="panel-flag">${flagImg(c.code, 36)}</span><div class="panel-info"><div class="panel-country-name">${c.name}</div><div class="panel-capital">🏛 ${c.capital}</div></div>`;
+    row.onclick = (e) => { e.stopPropagation(); openModal(c); };
+    container.appendChild(row);
+  });
+}
+
+function filterPanel(input, contName) {
+  // find which panel index
+  const panels = document.querySelectorAll('.continent-panel');
+  panels.forEach((p, idx) => {
+    if (p.classList.contains('open')) {
+      renderPanelCountries(idx, contName, input.value);
+    }
+  });
+}
+
+// ===== RENDER FLAGS =====
+let currentFilter = 'all';
+const flagsGrid = document.getElementById('flagsGrid');
+function renderFlags() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  flagsGrid.innerHTML = '';
+  const seen = new Set();
+  countries.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(q) || c.capital.toLowerCase().includes(q);
+    const parts = c.continent.split('/');
+    const matchCont = currentFilter === 'all' || parts.some(p => p.trim() === currentFilter);
+    if (matchSearch && matchCont && !seen.has(c.code)) { seen.add(c.code); return true; }
+    return false;
+  }).forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'flag-card';
+    el.innerHTML = `<span class="flag-emoji">${flagImg(c.code, 48)}</span><div class="flag-country">${c.name}</div><div class="flag-capital">🏛 ${c.capital}</div>`;
+    el.onclick = () => openModal(c);
+    flagsGrid.appendChild(el);
+  });
+}
+function filterFlags() { renderFlags(); }
+function filterByContinent(cont, btn) {
+  currentFilter = cont;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFlags();
+}
+renderFlags();
+
+// ===== MODAL =====
+function openModal(c) {
+  currentModalCountry = c;
+  document.getElementById('modalFlag').innerHTML = `<span style="font-size:5rem;line-height:1;">${codeToEmoji(c.code)}</span>`;
+  document.getElementById('modalName').textContent = c.name;
+  document.getElementById('modalGrid').innerHTML = `
+    <div class="modal-item"><label>Capital</label><span>🏛 ${c.capital}</span></div>
+    <div class="modal-item"><label>Continente</label><span>🌍 ${c.continent}</span></div>
+    <div class="modal-item"><label>Quem nasce lá</label><span>🧑 ${c.demonym || '—'}</span></div>
+    <div class="modal-item"><label>População</label><span>👥 ${c.pop}</span></div>
+    <div class="modal-item"><label>Área</label><span>📐 ${c.area}</span></div>
+    <div class="modal-item"><label>Moeda</label><span>💰 ${c.currency}</span></div>
+    <div class="modal-item"><label>Idioma</label><span>🗣 ${c.lang}</span></div>
+    <div class="modal-item"><label>PIB (aprox.)</label><span>📊 ${c.gdp}</span></div>
+    <div class="modal-item"><label>IDH</label><span>📈 ${c.idh || '—'}</span></div>
+    ${c.economy ? `<div class="modal-item" style="grid-column:1/-1"><label>💼 Economia</label><span style="font-size:0.78rem;line-height:1.5;">${c.economy}</span></div>` : ''}
+    ${c.culture ? `<div class="modal-item" style="grid-column:1/-1"><label>🎭 Cultura</label><span style="font-size:0.78rem;line-height:1.5;">${c.culture}</span></div>` : ''}
+  `;
+  const favs = lsGet('gm_favs');
+  const isFav = favs.some(f => f.code === c.code);
+  const favBtn = document.getElementById('modalFavBtn');
+  favBtn.textContent = isFav ? '💔 REMOVER FAVORITO' : '❤️ FAVORITAR PAÍS';
+  favBtn.style.color = isFav ? 'var(--accent2)' : 'var(--muted)';
+  registerVisit(c);
+  document.getElementById('modal').classList.add('active');
+}
+function closeModal(e) { if(e.target===document.getElementById('modal')) closeModalBtn(); }
+function closeModalBtn() { document.getElementById('modal').classList.remove('active'); }
+
+// ===== RECORDS =====
+const recList = document.getElementById('recordsList');
+records.forEach(r => {
+  const el = document.createElement('div');
+  el.className = 'record-item reveal';
+  el.innerHTML = `<div class="record-medal">${r.medal}</div><div class="record-body"><div class="record-title">${r.title}</div><div class="record-desc">${r.desc}</div></div><div class="record-value">${r.value}</div>`;
+  recList.appendChild(el);
+});
+
+// ===== FACTS =====
+const factsGrid = document.getElementById('factsGrid');
+facts.forEach(f => {
+  const el = document.createElement('div');
+  el.className = 'fact-card reveal';
+  el.setAttribute('data-num', f.num);
+  el.innerHTML = `<span class="fact-icon">${f.icon}</span><div class="fact-title">${f.title}</div><div class="fact-text">${f.text}</div>`;
+  factsGrid.appendChild(el);
+});
+
+
+// ===== THEME TOGGLE =====
+function toggleTheme() {
+  const body = document.body;
+  const btn = document.getElementById('themeToggle');
+  if (body.classList.contains('light-theme')) {
+    body.classList.remove('light-theme');
+    btn.textContent = '🌙 TEMA';
+    localStorage.setItem('gm_theme', 'dark');
+  } else {
+    body.classList.add('light-theme');
+    btn.textContent = '☀️ TEMA';
+    localStorage.setItem('gm_theme', 'light');
+  }
+}
+if (localStorage.getItem('gm_theme') === 'light') {
+  document.body.classList.add('light-theme');
+  document.getElementById('themeToggle').textContent = '☀️ TEMA';
+}
+
+// ===== QUIZ BANDEIRAS =====
+const quizCountries = [...new Map(countries.map(c=>[c.code,c])).values()];
+let qScore=0, qTotal=0, qCurrent=null, answered=false, hintUsed=false;
+let quizContinent = 'all';
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
+
+function setQuizContinent(cont, btn) {
+  quizContinent = cont;
+  document.querySelectorAll('.qcf-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  qScore = 0; qTotal = 0;
+  document.getElementById('quizScore').textContent = 'Pontuação: 0';
+  nextQuestion();
+}
+
+function getQuizPool() {
+  if (quizContinent === 'all') return quizCountries;
+  return quizCountries.filter(c => c.continent.includes(quizContinent));
+}
+
+async function loadTerritoryMap(code) {
+  const el = document.getElementById('quizTerritory');
+  el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">carregando...</span>';
+  try {
+    // Use restcountries SVG maps via country code
+    const url = `https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${code.toLowerCase()}/vector.svg`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const svg = await res.text();
+      el.innerHTML = `<div style="width:130px;height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${svg}</div>`;
+      const svgEl = el.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.width = '130px';
+        svgEl.style.height = '90px';
+        svgEl.style.fill = 'var(--accent)';
+        svgEl.style.stroke = 'var(--bg)';
+        svgEl.style.strokeWidth = '1px';
+        svgEl.style.filter = 'drop-shadow(0 0 8px rgba(0,229,255,0.4))';
+      }
+    } else {
+      el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">mapa indisponível</span>';
+    }
+  } catch {
+    el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">mapa indisponível</span>';
+  }
+}
+
+function nextQuestion() {
+  answered = false; hintUsed = false;
+  document.getElementById('quizNext').style.display = 'none';
+  document.getElementById('quizHint').disabled = false;
+  document.getElementById('quizInfo').style.display = 'none';
+  const pool = shuffle(getQuizPool());
+  if (pool.length < 4) {
+    document.getElementById('quizOptions').innerHTML = '<p style="color:var(--muted);text-align:center;">Poucos países neste continente para o quiz.</p>';
+    return;
+  }
+  qCurrent = pool[0];
+  const options = shuffle([qCurrent, ...pool.slice(1,4)]);
+  document.getElementById('quizFlag').innerHTML = codeToEmoji(qCurrent.code);
+  document.getElementById('quizQuestion').textContent = 'De qual país são estes símbolos?';
+  loadTerritoryMap(qCurrent.code);
+  const optDiv = document.getElementById('quizOptions');
+  optDiv.innerHTML = '';
+  options.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = o.name;
+    btn.onclick = () => checkAnswer(o, btn);
+    optDiv.appendChild(btn);
+  });
+}
+
+function useHint() {
+  if (answered || hintUsed) return;
+  hintUsed = true;
+  document.getElementById('quizHint').disabled = true;
+  const btns = [...document.querySelectorAll('#quizOptions .quiz-opt')];
+  const wrong = shuffle(btns.filter(b => b.textContent !== qCurrent.name));
+  wrong.slice(0,2).forEach(b => { b.style.visibility = 'hidden'; });
+}
+
+function checkAnswer(chosen, btn) {
+  if(answered) return;
+  answered = true; qTotal++;
+  const btns = document.querySelectorAll('#quizOptions .quiz-opt');
+  btns.forEach(b => {
+    b.disabled = true;
+    b.style.visibility = 'visible';
+    if(b.textContent === qCurrent.name) b.classList.add('correct');
+  });
+  if(chosen.name === qCurrent.name) { btn.classList.add('correct'); qScore++; }
+  else btn.classList.add('wrong');
+  document.getElementById('quizScore').textContent = `Pontuação: ${qScore} / ${qTotal}`;
+  const parts = qCurrent.continent.split('/');
+  const contText = parts.length > 1 ? `🌍 Continentes: ${qCurrent.continent}` : `🌍 Continente: ${qCurrent.continent}`;
+  const infoEl = document.getElementById('quizInfo');
+  infoEl.innerHTML = `${contText} &nbsp;|&nbsp; 📐 Território: ${qCurrent.area}`;
+  infoEl.style.display = 'block';
+  document.getElementById('quizHint').disabled = true;
+  document.getElementById('quizNext').style.display = 'inline-block';
+}
+nextQuestion();
+
+// ===== QUIZ CAPITAIS (MODO ALTERNADO) =====
+const capCountries = [...new Map(countries.map(c=>[c.code,c])).values()].filter(c=>c.capital && c.capital!=='—');
+let capScore=0, capTotal=0, capCurrent=null, capAnswered=false, capHintUsed=false, capMode='country'; // 'country' = qual capital? | 'capital' = de qual país?
+
+function nextCapQuestion() {
+  capAnswered = false; capHintUsed = false;
+  document.getElementById('capNext').style.display = 'none';
+  document.getElementById('capHint').disabled = false;
+  const pool = shuffle(capCountries);
+  capCurrent = pool[0];
+  // Alterna entre os dois modos
+  capMode = capTotal % 2 === 0 ? 'country' : 'capital';
+  const optDiv = document.getElementById('capOptions');
+  optDiv.innerHTML = '';
+
+  if (capMode === 'country') {
+    // Modo: "Qual é a capital de X?" → opções de capitais
+    document.getElementById('capModeTag').textContent = '🏙️ QUAL É A CAPITAL?';
+    document.getElementById('capHighlightText').innerHTML = `${codeToEmoji(capCurrent.code)} ${capCurrent.name}`;
+    document.getElementById('capQuestion').textContent = 'Qual é a capital deste país?';
+    const options = shuffle([capCurrent, ...pool.slice(1,4)]);
+    options.forEach(o => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-opt'; btn.textContent = o.capital;
+      btn.onclick = () => checkCapAnswer(btn, o.capital === capCurrent.capital, capCurrent.capital);
+      optDiv.appendChild(btn);
+    });
+  } else {
+    // Modo: "De qual país é a capital X?" → opções de países
+    document.getElementById('capModeTag').textContent = '🌍 DE QUAL PAÍS É ESTA CAPITAL?';
+    document.getElementById('capHighlightText').textContent = capCurrent.capital;
+    document.getElementById('capQuestion').textContent = 'De qual país é esta capital?';
+    const options = shuffle([capCurrent, ...pool.slice(1,4)]);
+    options.forEach(o => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-opt'; btn.textContent = `${codeToEmoji(o.code)} ${o.name}`;
+      btn.onclick = () => checkCapAnswer(btn, o.name === capCurrent.name, `${codeToEmoji(capCurrent.code)} ${capCurrent.name}`);
+      optDiv.appendChild(btn);
+    });
+  }
+}
+
+function useCapHint() {
+  if (capAnswered || capHintUsed) return;
+  capHintUsed = true;
+  document.getElementById('capHint').disabled = true;
+  const correct = capMode === 'country' ? capCurrent.capital : capCurrent.name;
+  const btns = [...document.querySelectorAll('#capOptions .quiz-opt')];
+  shuffle(btns.filter(b => !b.textContent.includes(correct))).slice(0,2).forEach(b => b.style.visibility='hidden');
+}
+
+function checkCapAnswer(btn, isCorrect, correctText) {
+  if (capAnswered) return;
+  capAnswered = true; capTotal++;
+  const btns = document.querySelectorAll('#capOptions .quiz-opt');
+  btns.forEach(b => {
+    b.disabled = true; b.style.visibility = 'visible';
+    // Mark correct: exact match or contains the correct text
+    if (b.textContent === correctText || b.textContent.trim() === correctText.trim()) b.classList.add('correct');
+  });
+  if (isCorrect) { btn.classList.add('correct'); capScore++; }
+  else { btn.classList.add('wrong'); }
+  document.getElementById('capScore').textContent = `Pontuação: ${capScore} / ${capTotal}`;
+  document.getElementById('capHint').disabled = true;
+  document.getElementById('capNext').style.display = 'inline-block';
+}
+nextCapQuestion();
+
+// ===== QUIZ CONTRA O TEMPO =====
+let tempoScore=0, tempoCurrent=null, tempoTimer=null, tempoSecsLeft=60, tempoAnswered=false;
+
+function startTempoQuiz() {
+  tempoScore = 0; tempoSecsLeft = 60; tempoAnswered = false;
+  document.getElementById('tempoStart').style.display = 'none';
+  document.getElementById('tempoGameOver').style.display = 'none';
+  document.getElementById('tempoGame').style.display = 'block';
+  document.getElementById('tempoScore').textContent = 'Pontuação: 0';
+  document.getElementById('tempoClock').textContent = '60';
+  document.getElementById('tempoClock').style.color = 'var(--accent2)';
+  document.getElementById('tempoPulse').style.width = '100%';
+  clearInterval(tempoTimer);
+  tempoTimer = setInterval(() => {
+    tempoSecsLeft--;
+    const pct = (tempoSecsLeft / 60 * 100) + '%';
+    document.getElementById('tempoPulse').style.width = pct;
+    const clk = document.getElementById('tempoClock');
+    clk.textContent = tempoSecsLeft;
+    if (tempoSecsLeft <= 10) clk.style.color = '#ff4444';
+    if (tempoSecsLeft <= 0) {
+      clearInterval(tempoTimer);
+      showTempoGameOver();
+    }
+  }, 1000);
+  nextTempoQuestion();
+}
+
+async function nextTempoQuestion() {
+  tempoAnswered = false;
+  const pool = shuffle([...new Map(countries.map(c=>[c.code,c])).values()]);
+  tempoCurrent = pool[0];
+  const options = shuffle([tempoCurrent, ...pool.slice(1,4)]);
+  document.getElementById('tempoFlag').innerHTML = codeToEmoji(tempoCurrent.code);
+  document.getElementById('tempoQuestion').textContent = 'De qual país são estes símbolos?';
+  loadTempoMap(tempoCurrent.code);
+  const optDiv = document.getElementById('tempoOptions');
+  optDiv.innerHTML = '';
+  options.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = o.name;
+    btn.onclick = () => checkTempoAnswer(o, btn);
+    optDiv.appendChild(btn);
+  });
+}
+
+async function loadTempoMap(code) {
+  const el = document.getElementById('tempoTerritory');
+  el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">carregando...</span>';
+  try {
+    const url = `https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${code.toLowerCase()}/vector.svg`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const svg = await res.text();
+      el.innerHTML = `<div style="width:130px;height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${svg}</div>`;
+      const svgEl = el.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.cssText = 'width:130px;height:90px;fill:var(--accent);stroke:var(--bg);stroke-width:1px;filter:drop-shadow(0 0 8px rgba(0,229,255,0.4));';
+      }
+    } else { el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">—</span>'; }
+  } catch { el.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;">—</span>'; }
+}
+
+function checkTempoAnswer(chosen, btn) {
+  if (tempoAnswered || tempoSecsLeft <= 0) return;
+  tempoAnswered = true;
+  const btns = document.querySelectorAll('#tempoOptions .quiz-opt');
+  btns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === tempoCurrent.name) b.classList.add('correct');
+  });
+  if (chosen.name === tempoCurrent.name) {
+    btn.classList.add('correct');
+    tempoScore++;
+    document.getElementById('tempoScore').textContent = `Pontuação: ${tempoScore}`;
+    // Breve flash verde
+    setTimeout(() => nextTempoQuestion(), 400);
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(() => nextTempoQuestion(), 800);
+  }
+}
+
+function showTempoGameOver() {
+  document.getElementById('tempoGame').style.display = 'none';
+  const go = document.getElementById('tempoGameOver');
+  go.style.display = 'block';
+  document.getElementById('tempoFinalScore').textContent = tempoScore;
+  // Animação do emoji
+  const emojis = ['💀','😭','🤯','🏆','🔥','👑'];
+  const anim = document.getElementById('tempoGameOverAnim');
+  anim.style.animation = 'none';
+  anim.textContent = tempoScore >= 15 ? '🏆' : tempoScore >= 8 ? '🔥' : '💀';
+  anim.style.display = 'block';
+  anim.animate([{transform:'scale(0)',opacity:0},{transform:'scale(1.3)',opacity:1},{transform:'scale(1)',opacity:1}], {duration:600,fill:'forwards'});
+}
+
+async function saveTempoRanking() {
+  const name = document.getElementById('tempoRankName').value.trim();
+  if (!name) { alert('Digite seu nome!'); return; }
+  const entry = { name, score: tempoScore, created_at: new Date().toISOString() };
+  if (db) {
+    await db.from('ranking_tempo').insert([entry]);
+  } else {
+    const list = lsGet('gm_ranking_tempo');
+    list.push(entry);
+    lsSet('gm_ranking_tempo', list);
+  }
+  document.getElementById('tempoRankName').value = '';
+  loadTempoRanking();
+  alert(`✅ ${tempoScore} pts salvo, ${name}!`);
+}
+
+async function loadTempoRanking() {
+  let items = [];
+  if (db) {
+    const { data } = await db.from('ranking_tempo').select('*').order('score',{ascending:false}).limit(20);
+    items = data || [];
+  } else {
+    items = lsGet('gm_ranking_tempo').sort((a,b)=>b.score-a.score).slice(0,20);
+  }
+  renderRanking(items, 'rankingTempoList');
+}
+loadTempoRanking();
+
+// ===== HELPER: LOAD SVG MAP =====
+async function loadSvgMap(code, elId, w=130, h=90) {
+  const el=document.getElementById(elId);
+  if(!el)return;
+  el.innerHTML='<span style="color:var(--muted);font-size:0.75rem;">carregando...</span>';
+  try {
+    const url=`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${code.toLowerCase()}/vector.svg`;
+    const res=await fetch(url);
+    if(res.ok){
+      const svg=await res.text();
+      el.innerHTML=`<div style="width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${svg}</div>`;
+      const svgEl=el.querySelector('svg');
+      if(svgEl){svgEl.style.cssText=`width:${w}px;height:${h}px;fill:var(--accent);stroke:var(--bg);stroke-width:1px;filter:drop-shadow(0 0 8px rgba(0,229,255,0.4));`;}
+    } else el.innerHTML='<span style="color:var(--muted);font-size:0.75rem;">—</span>';
+  } catch { el.innerHTML='<span style="color:var(--muted);font-size:0.75rem;">—</span>'; }
+}
+
+// ===== MODO SEQUÊNCIA =====
+let seqCorrect=0,seqWrong=0,seqStreak=0,seqBestStreak=0,seqCurrent=null,seqAnswered=false,seqTotal=0;
+
+function startSeqQuiz(){
+  seqCorrect=0;seqWrong=0;seqStreak=0;seqBestStreak=0;seqTotal=0;seqAnswered=false;
+  document.getElementById('seqStart').style.display='none';
+  document.getElementById('seqEnd').style.display='none';
+  document.getElementById('seqGame').style.display='block';
+  updateSeqScore();nextSeqQuestion();
+}
+function updateSeqScore(){
+  document.getElementById('seqScore').textContent=`✅ ${seqCorrect}  |  ❌ ${seqWrong}`;
+  document.getElementById('seqStreak').textContent=`🔥 ${seqStreak} seguidas`;
+}
+function nextSeqQuestion(){
+  seqAnswered=false;
+  document.getElementById('seqNext').style.display='none';
+  const pool=shuffle([...new Map(countries.map(c=>[c.code,c])).values()]);
+  seqCurrent=pool[0];
+  const options=shuffle([seqCurrent,...pool.slice(1,4)]);
+  document.getElementById('seqFlag').innerHTML=codeToEmoji(seqCurrent.code);
+  loadSvgMap(seqCurrent.code,'seqTerritory');
+  const optDiv=document.getElementById('seqOptions');
+  optDiv.innerHTML='';
+  options.forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';btn.textContent=o.name;
+    btn.onclick=()=>checkSeqAnswer(o,btn);
+    optDiv.appendChild(btn);
+  });
+}
+function checkSeqAnswer(chosen,btn){
+  if(seqAnswered)return;
+  seqAnswered=true;seqTotal++;
+  const btns=document.querySelectorAll('#seqOptions .quiz-opt');
+  btns.forEach(b=>{b.disabled=true;b.style.visibility='visible';if(b.textContent===seqCurrent.name)b.classList.add('correct');});
+  if(chosen.name===seqCurrent.name){btn.classList.add('correct');seqCorrect++;seqStreak++;if(seqStreak>seqBestStreak)seqBestStreak=seqStreak;}
+  else{btn.classList.add('wrong');seqWrong++;seqStreak=0;}
+  updateSeqScore();
+  if(seqTotal>=20){showSeqEnd();return;}
+  document.getElementById('seqNext').style.display='inline-block';
+}
+function showSeqEnd(){
+  document.getElementById('seqGame').style.display='none';
+  document.getElementById('seqEnd').style.display='block';
+  document.getElementById('seqFinalCorrect').textContent=seqCorrect;
+  document.getElementById('seqFinalWrong').textContent=seqWrong;
+  document.getElementById('seqFinalStreak').textContent=seqBestStreak;
+}
+async function saveSeqRanking(){
+  const name=document.getElementById('seqRankName').value.trim();
+  if(!name){alert('Digite seu nome!');return;}
+  const entry={name,score:seqCorrect,created_at:new Date().toISOString()};
+  if(db){await db.from('ranking_sequencia').insert([entry]);}
+  else{const l=lsGet('gm_ranking_sequencia');l.push(entry);lsSet('gm_ranking_sequencia',l);}
+  document.getElementById('seqRankName').value='';
+  alert(`✅ ${seqCorrect} acertos salvos, ${name}!`);
+}
+
+
+
+// ===== ADIVINHE PELO MAPA =====
+let mapaScore=0,mapaTotal=0,mapaCurrent=null,mapaAnswered=false,mapaHintUsed=false;
+
+function nextMapaQuestion(){
+  mapaAnswered=false;mapaHintUsed=false;
+  document.getElementById('mapaNext').style.display='none';
+  document.getElementById('mapaHint').disabled=false;
+  const pool=shuffle([...new Map(countries.map(c=>[c.code,c])).values()]);
+  mapaCurrent=pool[0];
+  const options=shuffle([mapaCurrent,...pool.slice(1,4)]);
+  loadSvgMap(mapaCurrent.code,'mapaTerritory',180,130);
+  const optDiv=document.getElementById('mapaOptions');
+  optDiv.innerHTML='';
+  options.forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';btn.textContent=o.name;
+    btn.onclick=()=>checkMapa(o,btn);
+    optDiv.appendChild(btn);
+  });
+}
+function useMapaHint(){
+  if(mapaAnswered||mapaHintUsed)return;
+  mapaHintUsed=true;document.getElementById('mapaHint').disabled=true;
+  shuffle([...document.querySelectorAll('#mapaOptions .quiz-opt')].filter(b=>b.textContent!==mapaCurrent.name)).slice(0,2).forEach(b=>b.style.visibility='hidden');
+}
+function checkMapa(chosen,btn){
+  if(mapaAnswered)return;
+  mapaAnswered=true;mapaTotal++;
+  document.querySelectorAll('#mapaOptions .quiz-opt').forEach(b=>{b.disabled=true;b.style.visibility='visible';if(b.textContent===mapaCurrent.name)b.classList.add('correct');});
+  if(chosen.name===mapaCurrent.name){btn.classList.add('correct');mapaScore++;}
+  else btn.classList.add('wrong');
+  document.getElementById('mapaScore').textContent=`Pontuação: ${mapaScore} / ${mapaTotal}`;
+  document.getElementById('mapaHint').disabled=true;
+  document.getElementById('mapaNext').style.display='inline-block';
+}
+nextMapaQuestion();
+
+// ===== CLIQUE NO MAPA (LEAFLET) =====
+let clickScore=0,clickTotal=0,clickCurrent=null,clickAnswered=false,clickPendingLatLng=null,leafletMap=null,clickMarkerLeaflet=null;
+const countryCoords={
+  br:[-14.2,-51.9],us:[37.1,-95.7],cn:[35.9,104.2],in:[20.6,79.0],ru:[61.5,105.3],
+  au:[-25.3,133.8],ca:[56.1,-106.3],ar:[-38.4,-63.6],dz:[28.0,1.7],cd:[-4.0,21.8],
+  sa:[23.9,45.1],mx:[23.6,-102.6],id:[-0.8,113.9],sd:[12.9,30.2],ly:[26.3,17.2],
+  ir:[32.4,53.7],mn:[46.9,103.8],pe:[-9.2,-75.0],td:[15.5,18.7],ng:[10.5,7.5],
+  et:[8.6,39.6],bo:[-16.3,-63.6],eg:[26.8,30.8],tz:[-6.4,34.9],ke:[-0.0,37.9],
+  fr:[46.2,2.2],de:[51.2,10.4],jp:[36.2,138.3],gb:[55.4,-3.4],it:[41.9,12.6],
+  es:[40.5,-3.7],za:[-30.6,22.9],co:[4.6,-74.1],cl:[-35.7,-71.5],tr:[38.9,35.2],
+  th:[15.9,100.9],vn:[14.1,108.3],pk:[30.4,69.3],af:[33.9,67.7],iq:[33.2,43.7],
+  se:[62.2,17.6],no:[60.5,8.5],pl:[51.9,19.1],ua:[48.4,31.2],nz:[-40.9,174.9],
+  pt:[39.4,-8.2],gr:[39.1,21.8],ma:[31.8,-7.1],gh:[7.9,-1.0],cm:[3.9,11.5],
+  mz:[-18.7,35.5],uy:[-32.5,-55.8],py:[-23.4,-58.4],ve:[6.4,-66.6],ec:[-1.8,-78.2],
+  gt:[15.8,-90.2],cu:[21.5,-79.5],kz:[48.0,66.9],by:[53.7,27.9],fi:[61.9,25.7],
+  ro:[45.9,24.9],cz:[49.8,15.5],hu:[47.2,19.5],at:[47.5,14.6],ch:[47.0,8.2],
+  nl:[52.1,5.3],be:[50.8,4.5],dk:[56.3,9.5],sk:[48.7,19.7],rs:[44.0,21.0],
+};
+
+function initLeafletMap() {
+  if (leafletMap) return;
+  leafletMap = L.map('leafletMap', { center:[20,0], zoom:2, minZoom:2, maxZoom:8 });
+  // OpenStreetMap tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:18
+  }).addTo(leafletMap);
+  // Country borders via GeoJSON
+  fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+    .then(r=>r.json())
+    .then(data=>{
+      L.geoJSON(data,{
+        style:{color:'#00e5ff',weight:1,fillColor:'transparent',fillOpacity:0}
+      }).addTo(leafletMap);
+    }).catch(()=>{});
+  leafletMap.on('click', e=>{
+    if(clickAnswered)return;
+    clickPendingLatLng=e.latlng;
+    if(clickMarkerLeaflet) leafletMap.removeLayer(clickMarkerLeaflet);
+    clickMarkerLeaflet=L.circleMarker(e.latlng,{radius:10,color:'white',fillColor:'#ff6b35',fillOpacity:1,weight:3}).addTo(leafletMap);
+    document.getElementById('clickConfirmBox').style.display='flex';
+    document.getElementById('clickConfirmText').textContent=`Confirmar: ${e.latlng.lat.toFixed(1)}°, ${e.latlng.lng.toFixed(1)}°?`;
+  });
+}
+
+// Init map when section is visible
+const clickObserver = new IntersectionObserver(entries=>{
+  if(entries[0].isIntersecting) { initLeafletMap(); clickObserver.disconnect(); }
+},{threshold:0.1});
+const clickSection = document.getElementById('quiz-clickmap');
+if(clickSection) clickObserver.observe(clickSection);
+
+function confirmMapClick(){
+  if(!clickPendingLatLng||clickAnswered)return;
+  clickAnswered=true; clickTotal++;
+  document.getElementById('clickConfirmBox').style.display='none';
+  const lat=clickPendingLatLng.lat, lng=clickPendingLatLng.lng;
+  const target=countryCoords[clickCurrent.code];
+  const fb=document.getElementById('clickFeedback');
+  if(!target){fb.innerHTML='<span style="color:var(--muted)">País sem coordenadas.</span>';setTimeout(nextClickQuestion,1500);return;}
+  const dist=Math.sqrt(Math.pow(lat-target[0],2)+Math.pow(lng-target[1],2));
+  // Show correct location marker
+  L.circleMarker(target,{radius:12,color:'white',fillColor:'#7cff6b',fillOpacity:1,weight:3}).addTo(leafletMap).bindPopup(`✅ ${clickCurrent.name}`).openPopup();
+  if(dist<15){clickScore++;fb.innerHTML=`<span style="color:var(--accent3)">✅ Correto! ${clickCurrent.name} fica aí mesmo!</span>`;}
+  else if(dist<35){clickScore++;fb.innerHTML=`<span style="color:var(--accent3)">✅ Quase! Perto o suficiente!</span>`;}
+  else{fb.innerHTML=`<span style="color:var(--accent2)">❌ Longe! ${clickCurrent.name} fica em ${target[0].toFixed(1)}°N, ${target[1].toFixed(1)}°E</span>`;}
+  document.getElementById('clickScore').textContent=`Pontuação: ${clickScore} / ${clickTotal}`;
+  document.getElementById('clickNext').style.display='inline-block';
+}
+
+function cancelMapClick(){
+  if(clickMarkerLeaflet){leafletMap.removeLayer(clickMarkerLeaflet);clickMarkerLeaflet=null;}
+  clickPendingLatLng=null;
+  document.getElementById('clickConfirmBox').style.display='none';
+}
+
+function nextClickQuestion(){
+  clickAnswered=false; clickPendingLatLng=null;
+  document.getElementById('clickNext').style.display='none';
+  document.getElementById('clickFeedback').textContent='';
+  document.getElementById('clickConfirmBox').style.display='none';
+  if(clickMarkerLeaflet){leafletMap.removeLayer(clickMarkerLeaflet);clickMarkerLeaflet=null;}
+  // Remove old markers except tiles
+  if(leafletMap) leafletMap.eachLayer(l=>{ if(l instanceof L.CircleMarker) leafletMap.removeLayer(l); });
+  const code=shuffle(Object.keys(countryCoords))[0];
+  clickCurrent=countries.find(c=>c.code===code)||{code,name:code.toUpperCase()};
+  document.getElementById('clickTarget').innerHTML=`${codeToEmoji(code)} ${clickCurrent.name}`;
+}
+nextClickQuestion();
+
+// ===== STREAK DE DIAS (DUOLINGO STYLE) =====
+(function initStreak() {
+  const KEY_STREAK = 'gm_streak';
+  const KEY_LAST   = 'gm_last_visit';
+  const KEY_BEST   = 'gm_best_streak';
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function diffDays(a, b) {
+    // a, b = 'YYYY-MM-DD'
+    return Math.round((new Date(b) - new Date(a)) / 86400000);
+  }
+
+  let streak   = parseInt(localStorage.getItem(KEY_STREAK) || '0');
+  let best     = parseInt(localStorage.getItem(KEY_BEST)   || '0');
+  let lastVisit= localStorage.getItem(KEY_LAST) || '';
+  const today  = todayStr();
+
+  if (!lastVisit) {
+    // First visit ever
+    streak = 1;
+  } else if (lastVisit === today) {
+    // Already visited today — keep streak
+  } else {
+    const diff = diffDays(lastVisit, today);
+    if (diff === 1) {
+      streak++; // consecutive day
+    } else {
+      streak = 1; // broke the streak
+    }
+  }
+  if (streak > best) best = streak;
+  localStorage.setItem(KEY_STREAK, streak);
+  localStorage.setItem(KEY_BEST,   best);
+  localStorage.setItem(KEY_LAST,   today);
+
+  // Update badge
+  document.getElementById('streakCount').textContent = streak;
+  // Fire emoji: ice if broken (already handled above), animate if streak >= 3
+  const fireEl = document.getElementById('streakFire');
+  if (streak >= 7)      fireEl.textContent = '🏆';
+  else if (streak >= 3) fireEl.textContent = '🔥';
+  else                  fireEl.textContent = '🔥';
+
+  // Pulse animation on badge if >= 2 days
+  if (streak >= 2) {
+    const badge = document.getElementById('streakBadge');
+    badge.style.animation = 'streakPulse 2s ease-in-out infinite';
+  }
+
+  // Modal functions
+  window.showStreakModal = function() {
+    document.getElementById('streakModal').style.display = 'flex';
+    document.getElementById('streakModalCount').textContent = streak;
+    document.getElementById('streakModalFire').textContent = streak >= 7 ? '🏆' : '🔥';
+
+    // Message
+    const msgs = [
+      [1,  'Bem-vindo ao GeoMundo! Volte amanhã! 👋'],
+      [2,  '2 dias! Você tá comprometido! 💪'],
+      [3,  'Hat-trick! 3 dias seguidos! 🎯'],
+      [7,  'Uma semana inteira! Você é incrível! 🌍'],
+      [14, 'Duas semanas! Mestre da geografia! 🗺️'],
+      [30, '30 dias! Lendário! 👑'],
+    ];
+    let msg = msgs[0][1];
+    for (const [min, txt] of msgs) { if (streak >= min) msg = txt; }
+    document.getElementById('streakModalMsg').textContent = msg;
+
+    // Week grid — last 7 days
+    const weekEl = document.getElementById('streakWeek');
+    weekEl.innerHTML = '';
+    const days = ['D','S','T','Q','Q','S','S'];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const dayName = days[d.getDay()];
+      const isToday = ds === today;
+      const active  = i < streak; // simple: last N days active
+      const div = document.createElement('div');
+      div.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:4px;`;
+      div.innerHTML = `
+        <div style="width:36px;height:36px;border-radius:50%;background:${active ? (isToday ? 'var(--accent2)' : 'var(--accent3)') : 'var(--bg)'};border:2px solid ${active ? (isToday ? 'var(--accent2)' : 'var(--accent3)') : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:${active?'1.1':'0.9'}rem;">
+          ${active ? (isToday ? '🔥' : '✅') : '·'}
+        </div>
+        <span style="font-size:0.6rem;color:var(--muted);font-family:'Space Mono',monospace;">${dayName}</span>
+      `;
+      weekEl.appendChild(div);
+    }
+  };
+
+  window.closeStreakModal = function() {
+    document.getElementById('streakModal').style.display = 'none';
+  };
+  document.getElementById('streakModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('streakModal')) closeStreakModal();
+  });
+})();
+
+// ===== SCROLL REVEAL =====
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e,i) => { if(e.isIntersecting) { setTimeout(()=>e.target.classList.add('visible'), i*60); } });
+}, { threshold:0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===== DEV PANEL — BILLY MODE =====
+let billyBuffer = '';
+function checkBilly(val, clearFn) {
+  if (['billy', 'bily', 'billi'].includes(val.trim().toLowerCase())) {
+    document.getElementById('devPanel').style.display = 'block';
+    loadDevTable();
+    if (clearFn) clearFn();
+    billyBuffer = '';
+    return true;
+  }
+  return false;
+}
+document.getElementById('searchInput').addEventListener('input', e => {
+  if (checkBilly(e.target.value, () => { e.target.value = ''; filterFlags(); })) return;
+});
+document.getElementById('tempoRankName').addEventListener('input', e => {
+  if (checkBilly(e.target.value, () => { e.target.value = ''; })) return;
+});
+
+async function devRemove(table, inputId, msgId) {
+  const name = document.getElementById(inputId).value.trim();
+  if (!name) return;
+  const msgEl = document.getElementById(msgId);
+  if (db) {
+    const { error } = await db.from(table).delete().ilike('name', name);
+    msgEl.textContent = error ? '❌ Erro: ' + error.message : `✅ "${name}" removido!`;
+  } else {
+    const keyMap={'ranking':'gm_ranking','ranking_capitais':'gm_ranking_capitais','ranking_tempo':'gm_ranking_tempo','ranking_sequencia':'gm_ranking_sequencia'};
+    const key=keyMap[table]||'gm_ranking';
+    const list=lsGet(key).filter(r=>r.name.toLowerCase()!==name.toLowerCase());
+    lsSet(key,list);
+    msgEl.textContent=`✅ "${name}" removido localmente!`;
+  }
+  document.getElementById(inputId).value = '';
+  loadDevTable();
+  if (table === 'ranking') loadRanking(); else loadCapRanking();
+}
+
+async function loadDevTable() {
+  const el=document.getElementById('devTable');
+  const filterEl=document.getElementById('devFilterSelect');
+  const filter=filterEl?filterEl.value:'all';
+  const allTables=['ranking','ranking_capitais','ranking_tempo','ranking_sequencia'];
+  const tables=filter==='all'?allTables:[filter];
+  const labels={'ranking':'🏳️ Bandeiras','ranking_capitais':'🏛️ Capitais','ranking_tempo':'⏱️ Tempo','ranking_sequencia':'🔥 Sequência'};
+  const keyMap={'ranking':'gm_ranking','ranking_capitais':'gm_ranking_capitais','ranking_tempo':'gm_ranking_tempo','ranking_sequencia':'gm_ranking_sequencia'};
+  let html='<table style="width:100%;border-collapse:collapse;">';
+  html+='<tr style="color:var(--accent);border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Ranking</th><th style="text-align:left;padding:4px 8px;">Nome</th><th style="text-align:left;padding:4px 8px;">Pts</th><th style="text-align:left;padding:4px 8px;">Data</th></tr>';
+  for(const t of tables){
+    let items=[];
+    if(db){const{data}=await db.from(t).select('*').order('score',{ascending:false}).limit(50);items=data||[];}
+    else{items=lsGet(keyMap[t]).sort((a,b)=>b.score-a.score);}
+    items.forEach(r=>{
+      html+=`<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+        <td style="padding:4px 8px;color:var(--muted);">${labels[t]||t}</td>
+        <td style="padding:4px 8px;">${r.name}</td>
+        <td style="padding:4px 8px;color:var(--accent2);">${r.score}</td>
+        <td style="padding:4px 8px;color:var(--muted);font-size:0.72rem;">${new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
+      </tr>`;
+    });
+  }
+  el.innerHTML=html+'</table>';
+}
+
+
+// ============================================================
+// ===== CONFIGURAÇÃO — PREENCHA SUAS CHAVES AQUI =====
+// ============================================================
+// 1. Crie conta em https://supabase.com → New Project
+//    Copie Project URL e anon public key:
+const SUPABASE_URL = 'https://tptvnjrlhiylcibqbzhp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_y5R5bx8riXsQEXafdGGU8A_vMPJ9FYo';
+
+// 2. Crie conta em https://emailjs.com → Add Service (Gmail) → Add Template
+//    Copie seus IDs:
+const EMAILJS_PUBLIC_KEY  = 'COLE_SEU_EMAILJS_PUBLIC_KEY';
+const EMAILJS_SERVICE_ID  = 'COLE_SEU_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'COLE_SEU_TEMPLATE_ID';
+// ============================================================
+
+// ===== INIT =====
+let db = null;
+try {
+  if (SUPABASE_URL !== 'COLE_SUA_SUPABASE_URL_AQUI') {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+} catch(e) {}
+
+try {
+  if (EMAILJS_PUBLIC_KEY !== 'COLE_SEU_EMAILJS_PUBLIC_KEY') {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+  }
+} catch(e) {}
+
+// ===== LOCAL STORAGE HELPERS (fallback sem Supabase) =====
+function lsGet(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch{ return []; } }
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch{} }
+
+// ============================================================
+// ===== RANKING =====
+// ============================================================
+async function loadRanking() {
+  let items = [];
+  if (db) {
+    const { data } = await db.from('ranking').select('*').order('score', { ascending: false }).limit(20);
+    items = data || [];
+  } else {
+    items = lsGet('gm_ranking').sort((a,b) => b.score - a.score).slice(0,20);
+  }
+  renderRanking(items);
+}
+
+function renderRanking(items, elId='rankingList') {
+  const el = document.getElementById(elId);
+  if (!items.length) { el.innerHTML = '<div class="ranking-empty">Ainda não há pontuações. Seja o primeiro! 🏆</div>'; return; }
+  const medals = ['gold','silver','bronze'];
+  el.innerHTML = items.map((r,i) => `
+    <div class="ranking-item">
+      <div class="ranking-pos ${medals[i]||''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="ranking-name">${r.name}</div>
+      <div class="ranking-score">${r.score} pts</div>
+    </div>
+  `).join('');
+}
+
+async function saveRanking() {
+  const name = document.getElementById('rankName').value.trim();
+  if (!name) { alert('Digite seu nome!'); return; }
+  if (qTotal === 0) { alert('Jogue o quiz primeiro!'); return; }
+  const score = qScore;
+  const entry = { name, score, created_at: new Date().toISOString() };
+  if (db) {
+    await db.from('ranking').insert([entry]);
+  } else {
+    const list = lsGet('gm_ranking');
+    list.push(entry);
+    lsSet('gm_ranking', list);
+  }
+  document.getElementById('rankName').value = '';
+  loadRanking();
+  alert(`✅ Pontuação de ${score} pts salva, ${name}!`);
+}
+
+loadRanking();
+
+// ============================================================
+// ===== FAVORITOS =====
+// ============================================================
+let currentModalCountry = null;
+
+function renderFavorites() {
+  const favs = lsGet('gm_favs');
+  const el = document.getElementById('favGrid');
+  if (!favs.length) { el.innerHTML = '<p class="fav-empty">Nenhum favorito ainda. Explore os países e favorite os que você mais gosta!</p>'; return; }
+  el.innerHTML = favs.map(c => `
+    <div class="fav-card">
+      <span style="font-size:1.4rem">${codeToEmoji(c.code)}</span>
+      <span class="fav-name">${c.name}</span>
+      <button class="fav-remove" onclick="removeFavorite('${c.code}')" title="Remover">✕</button>
+    </div>
+  `).join('');
+}
+
+function toggleFavorite() {
+  if (!currentModalCountry) return;
+  const c = currentModalCountry;
+  let favs = lsGet('gm_favs');
+  const idx = favs.findIndex(f => f.code === c.code);
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+    document.getElementById('modalFavBtn').textContent = '❤️ FAVORITAR PAÍS';
+    document.getElementById('modalFavBtn').style.color = 'var(--muted)';
+  } else {
+    favs.push({ code: c.code, name: c.name });
+    document.getElementById('modalFavBtn').textContent = '💔 REMOVER FAVORITO';
+    document.getElementById('modalFavBtn').style.color = 'var(--accent2)';
+  }
+  lsSet('gm_favs', favs);
+  renderFavorites();
+}
+
+function removeFavorite(code) {
+  let favs = lsGet('gm_favs').filter(f => f.code !== code);
+  lsSet('gm_favs', favs);
+  renderFavorites();
+}
+
+renderFavorites();
+
+// ============================================================
+// ===== CONTADOR DE VISITAS =====
+// ============================================================
+async function registerVisit(country) {
+  if (db) {
+    const { data } = await db.from('visits').select('count').eq('code', country.code).single();
+    if (data) {
+      await db.from('visits').update({ count: data.count + 1 }).eq('code', country.code);
+    } else {
+      await db.from('visits').insert([{ code: country.code, name: country.name, count: 1 }]);
+    }
+  } else {
+    const visits = lsGet('gm_visits');
+    const idx = visits.findIndex(v => v.code === country.code);
+    if (idx >= 0) visits[idx].count++;
+    else visits.push({ code: country.code, name: country.name, count: 1 });
+    lsSet('gm_visits', visits);
+  }
+  loadVisits();
+}
+
+async function loadVisits() {
+  let items = [];
+  if (db) {
+    const { data } = await db.from('visits').select('*').order('count', { ascending: false }).limit(12);
+    items = data || [];
+  } else {
+    items = lsGet('gm_visits').sort((a,b) => b.count - a.count).slice(0,12);
+  }
+  renderVisits(items);
+}
+
+function renderVisits(items) {
+  const el = document.getElementById('visitsBar');
+  if (!items.length) { el.innerHTML = '<p style="color:var(--muted)">Nenhuma visita registrada ainda. Explore os países!</p>'; return; }
+  const max = items[0]?.count || 1;
+  el.innerHTML = items.map(v => `
+    <div class="visit-item">
+      <span class="visit-flag">${codeToEmoji(v.code)}</span>
+      <div class="visit-info">
+        <div class="visit-name">${v.name}</div>
+        <div class="visit-count">${v.count} visita${v.count !== 1 ? 's' : ''}</div>
+        <div class="visit-bar-fill" style="width:${Math.round((v.count/max)*100)}%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+loadVisits();
+
+// ============================================================
+// ===== SUGESTÕES + EMAIL =====
+// ============================================================
+async function loadSuggestions() {
+  let items = [];
+  if (db) {
+    const { data } = await db.from('suggestions').select('*').order('created_at', { ascending: false }).limit(20);
+    items = data || [];
+  } else {
+    items = lsGet('gm_suggestions').reverse().slice(0,20);
+  }
+  renderSuggestions(items);
+}
+
+function renderSuggestions(items) {
+  const el = document.getElementById('suggestionsList');
+  if (!items.length) { el.innerHTML = '<p style="color:var(--muted)">Ainda não há sugestões. Seja o primeiro!</p>'; return; }
+  el.innerHTML = items.map(s => `
+    <div class="suggestion-card">
+      <div class="suggestion-card-name">💬 ${s.name}</div>
+      <div class="suggestion-card-text">${s.text}</div>
+      <div class="suggestion-card-date">${new Date(s.created_at).toLocaleDateString('pt-BR')}</div>
+    </div>
+  `).join('');
+}
+
+async function sendSuggestion() {
+  const name = document.getElementById('sugName').value.trim();
+  const text = document.getElementById('sugText').value.trim();
+  const statusEl = document.getElementById('sugStatus');
+  statusEl.className = 'suggestion-status';
+
+  if (!name || !text) {
+    statusEl.textContent = '⚠️ Preencha seu nome e a sugestão!';
+    statusEl.className = 'suggestion-status err';
+    return;
+  }
+
+  const entry = { name, text, created_at: new Date().toISOString() };
+
+  // Salvar no banco
+  if (db) {
+    await db.from('suggestions').insert([entry]);
+  } else {
+    const list = lsGet('gm_suggestions');
+    list.push(entry);
+    lsSet('gm_suggestions', list);
+  }
+
+  statusEl.textContent = '✅ Sugestão enviada com sucesso! Obrigado, ' + name + '!';
+  statusEl.className = 'suggestion-status ok';
+
+  document.getElementById('sugName').value = '';
+  document.getElementById('sugText').value = '';
+  loadSuggestions();
+}
+
+loadSuggestions();
+
+// ===== RANKING CAPITAIS =====
+async function loadCapRanking() {
+  let items = [];
+  if (db) {
+    const { data } = await db.from('ranking_capitais').select('*').order('score', { ascending: false }).limit(20);
+    items = data || [];
+  } else {
+    items = lsGet('gm_ranking_capitais').sort((a,b) => b.score - a.score).slice(0,20);
+  }
+  renderRanking(items, 'rankingCapList');
+}
+
+async function saveCapRanking() {
+  const name = document.getElementById('rankCapName').value.trim();
+  if (!name) { alert('Digite seu nome!'); return; }
+  if (capTotal === 0) { alert('Jogue o quiz de capitais primeiro!'); return; }
+  const entry = { name, score: capScore, created_at: new Date().toISOString() };
+  if (db) {
+    await db.from('ranking_capitais').insert([entry]);
+  } else {
+    const list = lsGet('gm_ranking_capitais');
+    list.push(entry);
+    lsSet('gm_ranking_capitais', list);
+  }
+  document.getElementById('rankCapName').value = '';
+  loadCapRanking();
+  alert(`✅ Pontuação de ${capScore} pts salva, ${name}!`);
+}
+
+loadCapRanking();
+</script>
+<!-- BACK TO TOP -->
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo" style="display:none;position:fixed;bottom:2rem;right:2rem;z-index:999;width:46px;height:46px;border-radius:50%;background:var(--accent);border:none;color:var(--bg);font-size:1.2rem;cursor:pointer;box-shadow:0 4px 20px rgba(0,229,255,0.4);transition:all 0.3s;align-items:center;justify-content:center;">▲</button>
+
+<script>
+const btt = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+  btt.style.display = window.scrollY > 400 ? 'flex' : 'none';
+});
+</script>
+</body>
+</html>

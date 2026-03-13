@@ -1755,7 +1755,6 @@ function filterByContinent(cont, btn) {
   btn.classList.add('active');
   renderFlags();
 }
-renderFlags();
 
 // ===== MODAL =====
 function openModal(c) {
@@ -1927,7 +1926,6 @@ function checkAnswer(chosen, btn) {
   document.getElementById('quizHint').disabled = true;
   document.getElementById('quizNext').style.display = 'inline-block';
 }
-nextQuestion();
 
 // ===== QUIZ CAPITAIS (MODO ALTERNADO) =====
 const capCountries = [...new Map(countries.map(c=>[c.code,c])).values()].filter(c=>c.capital && c.capital!=='—');
@@ -1995,7 +1993,6 @@ function checkCapAnswer(btn, isCorrect, correctText) {
   document.getElementById('capHint').disabled = true;
   document.getElementById('capNext').style.display = 'inline-block';
 }
-nextCapQuestion();
 
 // ===== QUIZ CONTRA O TEMPO =====
 let tempoScore=0, tempoCurrent=null, tempoTimer=null, tempoSecsLeft=60, tempoAnswered=false;
@@ -2121,7 +2118,6 @@ async function loadTempoRanking() {
   }
   renderRanking(items, 'rankingTempoList');
 }
-loadTempoRanking();
 
 // ===== HELPER: LOAD SVG MAP =====
 async function loadSvgMap(code, elId, w=130, h=90) {
@@ -2236,7 +2232,6 @@ function checkMapa(chosen,btn){
   document.getElementById('mapaHint').disabled=true;
   document.getElementById('mapaNext').style.display='inline-block';
 }
-nextMapaQuestion();
 
 // ===== CLIQUE NO MAPA (LEAFLET) =====
 let clickScore=0,clickTotal=0,clickCurrent=null,clickAnswered=false,clickPendingLatLng=null,leafletMap=null,clickMarkerLeaflet=null;
@@ -2325,7 +2320,6 @@ function nextClickQuestion(){
   clickCurrent=countries.find(c=>c.code===code)||{code,name:code.toUpperCase()};
   document.getElementById('clickTarget').innerHTML=`${codeToEmoji(code)} ${clickCurrent.name}`;
 }
-nextClickQuestion();
 
 // ===== STREAK DE DIAS (DUOLINGO STYLE) =====
 (function initStreak() {
@@ -2577,7 +2571,6 @@ async function saveRanking() {
   alert(`✅ Pontuação de ${score} pts salva, ${name}!`);
 }
 
-loadRanking();
 
 // ============================================================
 // ===== FAVORITOS =====
@@ -2621,7 +2614,6 @@ function removeFavorite(code) {
   renderFavorites();
 }
 
-renderFavorites();
 
 // ============================================================
 // ===== CONTADOR DE VISITAS =====
@@ -2730,7 +2722,6 @@ async function sendSuggestion() {
   loadSuggestions();
 }
 
-loadSuggestions();
 
 // ===== RANKING CAPITAIS =====
 async function loadCapRanking() {
@@ -2761,7 +2752,20 @@ async function saveCapRanking() {
   alert(`✅ Pontuação de ${capScore} pts salva, ${name}!`);
 }
 
-loadCapRanking();
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderFlags();
+  nextQuestion();
+  nextCapQuestion();
+  loadTempoRanking();
+  nextMapaQuestion();
+  nextClickQuestion();
+  loadRanking();
+  renderFavorites();
+  loadSuggestions();
+  loadCapRanking();
+});
 </script>
 <!-- BACK TO TOP -->
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo" style="display:none;position:fixed;bottom:2rem;right:2rem;z-index:999;width:46px;height:46px;border-radius:50%;background:var(--accent);border:none;color:var(--bg);font-size:1.2rem;cursor:pointer;box-shadow:0 4px 20px rgba(0,229,255,0.4);transition:all 0.3s;align-items:center;justify-content:center;">▲</button>

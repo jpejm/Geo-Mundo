@@ -2778,6 +2778,7 @@ window.addEventListener('scroll', () => {
 </script>
 
 <script>
+
 // ══════════════════════════════════════════════
 // PAÍS DO DIA
 // ══════════════════════════════════════════════
@@ -2943,12 +2944,15 @@ function savePassName() {
   updatePassaporte();
 }
 
-document.getElementById('passName').addEventListener('click', () => {
-  const inp = document.getElementById('passNameInput');
-  inp.value = localStorage.getItem('gm_pass_name')||'';
-  inp.style.display = 'block';
-  document.getElementById('passName').style.display = 'none';
-  inp.focus();
+document.addEventListener('DOMContentLoaded', () => {
+  const passNameEl = document.getElementById('passName');
+  if (passNameEl) passNameEl.addEventListener('click', () => {
+    const inp = document.getElementById('passNameInput');
+    inp.value = localStorage.getItem('gm_pass_name')||'';
+    inp.style.display = 'block';
+    document.getElementById('passName').style.display = 'none';
+    inp.focus();
+  });
 });
 
 // ══════════════════════════════════════════════
@@ -3004,30 +3008,8 @@ function initNewFeatures() {
   loadCQRanking();
 }
 
-// Hook into existing openModal to update passport map
-const _origOpenModal = openModal;
-function openModal(c) {
-  _origOpenModal(c);
-  // update visited & map
-  setTimeout(() => {
-    renderMapaProgresso();
-    updatePassaporte();
-  }, 100);
-}
 
-// Track quiz hits for passport
-function trackQuizHit() {
-  const n = (parseInt(localStorage.getItem('gm_quiz_hits'))||0)+1;
-  localStorage.setItem('gm_quiz_hits', n);
-  updatePassaporte();
-}
 
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initNewFeatures, 200);
-});
-</script>
-
-<script>
 
 // ═══════════════════════════════════════════════════════════════════
 // CLIMA EM TEMPO REAL (Open-Meteo, gratuito)
@@ -3123,18 +3105,25 @@ const COUNTRY_LANG = {
 // ═══════════════════════════════════════════════════════════════════
 // ENHANCED openModal — adds weather + how to say
 // ═══════════════════════════════════════════════════════════════════
-const _origOpenModal2 = openModal;
+
+
+// ─── OPENMODAL ENHANCED (weather + how to say + passport update) ─────────────
+const _origOpenModalBase = openModal;
 async function openModal(c) {
-  _origOpenModal2(c);
-  // Add weather section (async)
-  const grid = document.getElementById('modalGrid');
+  _origOpenModalBase(c);
+
+  // Update passport & map
+  setTimeout(() => { renderMapaProgresso(); updatePassaporte(); }, 100);
+
   // Add "How to say" immediately
+  const grid = document.getElementById('modalGrid');
+  if (!grid) return;
   const langCode = COUNTRY_LANG[c.code];
   const phrases = langCode ? HOW_TO_SAY[langCode] : null;
   if (phrases) {
     const hts = document.createElement('div');
     hts.style.cssText = 'grid-column:1/-1;margin-top:.5rem;';
-    hts.innerHTML = `<div style="font-size:.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:.5rem;">🔤 COMO SE DIZ EM ${c.lang.toUpperCase()}</div>
+    hts.innerHTML = `<div style="font-size:.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:.5rem;">🔤 COMO SE DIZ EM ${c.lang ? c.lang.toUpperCase() : ''}</div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
         ${[['Olá',phrases.ola],['Obrigado',phrases.obrigado],['Sim',phrases.sim],['Não',phrases.nao]].map(([l,v])=>
           `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.35rem .6rem;font-size:.72rem;"><span style="color:var(--muted);font-size:.55rem;display:block;">${l}</span><span style="color:var(--accent);">${v}</span></div>`
@@ -3142,72 +3131,32 @@ async function openModal(c) {
       </div>`;
     grid.appendChild(hts);
   }
-  // Add weather section placeholder
+
+  // Fetch weather async
   const wDiv = document.createElement('div');
   wDiv.style.cssText = 'grid-column:1/-1;margin-top:.5rem;';
-  wDiv.innerHTML = `<div style="font-size:.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:.4rem;">🌦 CLIMA EM ${c.capital.toUpperCase()} AGORA</div><div id="weatherWidget" style="color:var(--muted);font-size:.75rem;">carregando...</div>`;
+  wDiv.innerHTML = `<div style="font-size:.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:.4rem;">🌦 CLIMA EM ${c.capital ? c.capital.toUpperCase() : ''} AGORA</div><div id="weatherWidget" style="color:var(--muted);font-size:.75rem;">carregando...</div>`;
   grid.appendChild(wDiv);
-  // Fetch weather
   const w = await fetchWeather(c.code);
   const ww = document.getElementById('weatherWidget');
-  if (!ww) return;
-  if (w) {
-    ww.innerHTML = `<div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-      <div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--text);">${w.temp}°C</div>
-      <div><div style="color:var(--text);font-size:.8rem;">${w.desc}</div><div style="color:var(--muted);font-size:.65rem;">Vento: ${w.wind} km/h</div></div>
-    </div>`;
-  } else {
-    ww.textContent = 'Dados não disponíveis';
+  if (ww) {
+    if (w) {
+      ww.innerHTML = `<div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div style="font-family:'Bebas Neue',cursive;font-size:2rem;color:var(--text);">${w.temp}°C</div>
+        <div><div style="color:var(--text);font-size:.8rem;">${w.desc}</div><div style="color:var(--muted);font-size:.65rem;">Vento: ${w.wind} km/h</div></div>
+      </div>`;
+    } else {
+      ww.textContent = 'Dados não disponíveis';
+    }
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// TOAST DE CONQUISTA
-// ═══════════════════════════════════════════════════════════════════
-function showBadgeToast(icon, label) {
-  const t = document.createElement('div');
-  t.style.cssText = `position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);
-    background:var(--surface);border:1px solid var(--accent);border-radius:8px;
-    padding:.6rem 1.2rem;display:flex;align-items:center;gap:.6rem;
-    font-family:'Space Mono',monospace;font-size:.75rem;z-index:9999;
-    box-shadow:0 4px 24px rgba(0,229,255,.2);animation:toastIn .3s ease;`;
-  t.innerHTML = `<span style="font-size:1.3rem;">${icon}</span><div><div style="color:var(--accent);font-size:.6rem;letter-spacing:2px;">CONQUISTA DESBLOQUEADA!</div><div style="color:var(--text);">${label}</div></div>`;
-  document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(()=>t.remove(), 400); }, 3500);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// HISTÓRICO DE PARTIDAS (Capital Quest ranking → partidas locais)
-// ═══════════════════════════════════════════════════════════════════
-function addMatchHistory(entry) {
-  // called from game via postMessage or direct if same origin
-  const hist = JSON.parse(localStorage.getItem('cq_history')||'[]');
-  hist.unshift({...entry, date: new Date().toLocaleDateString('pt-BR')});
-  localStorage.setItem('cq_history', JSON.stringify(hist.slice(0,5)));
-}
-
-function renderMatchHistory() {
-  const hist = JSON.parse(localStorage.getItem('cq_history')||'[]');
-  const el = document.getElementById('matchHistory');
-  if (!el) return;
-  if (!hist.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.8rem;">Nenhuma partida ainda. Jogue Capital Quest!</p>'; return; }
-  el.innerHTML = hist.map((h,i)=>`
-    <div style="display:flex;align-items:center;gap:.8rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;font-family:'Space Mono',monospace;font-size:.7rem;margin-bottom:.4rem;">
-      <span style="color:var(--muted);min-width:1.5rem;">#${i+1}</span>
-      <span style="flex:1;color:var(--text);">${h.date}</span>
-      <span style="color:var(--accent);">${(h.pontuacao||0).toLocaleString()} pts</span>
-      <span style="color:#7cff6b;">Lv${h.nivel||1}</span>
-      <span style="color:#ffd700;">${h.capitais||0} caps</span>
-    </div>`).join('');
-}
-
-// Hook badge toast into updatePassaporte
+// ─── UPDATEPASSAPORTE ENHANCED (badge toast) ──────────────────────────────────
 const _origUpdatePassaporte = updatePassaporte;
 function updatePassaporte() {
   const prevEarned = new Set(JSON.parse(localStorage.getItem('gm_badges_earned')||'[]'));
   _origUpdatePassaporte();
   const visited = lsGet('gm_visits').map(v=>v.code);
-  // Check for newly earned badges
   BADGES.forEach(b => {
     if (!prevEarned.has(b.id) && b.check(visited)) {
       showBadgeToast(b.icon, b.label);
@@ -3215,6 +3164,13 @@ function updatePassaporte() {
     }
   });
   localStorage.setItem('gm_badges_earned', JSON.stringify([...prevEarned]));
+}
+
+// Track quiz hits for passport
+function trackQuizHit() {
+  const n = (parseInt(localStorage.getItem('gm_quiz_hits'))||0)+1;
+  localStorage.setItem('gm_quiz_hits', n);
+  updatePassaporte();
 }
 
 </script>

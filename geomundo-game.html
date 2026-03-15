@@ -374,6 +374,46 @@ const COUNTRIES = [
   {name:'Grécia',       flag:'gr', capitals:['Atenas'],                            col:'#0d5eaf'},
   {name:'Suécia',       flag:'se', capitals:['Estocolmo'],                         col:'#006aa7'},
   {name:'Holanda',      flag:'nl', capitals:['Amsterdã'],                          col:'#ae1c28'},
+  {name:'Noruega',      flag:'no', capitals:['Oslo'],                             col:'#ef2b2d'},
+  {name:'Suíça',        flag:'ch', capitals:['Berna'],                            col:'#ff0000'},
+  {name:'Bélgica',      flag:'be', capitals:['Bruxelas'],                         col:'#000000'},
+  {name:'Áustria',      flag:'at', capitals:['Viena'],                            col:'#ed2939'},
+  {name:'Dinamarca',    flag:'dk', capitals:['Copenhague'],                       col:'#c60c30'},
+  {name:'Finlândia',    flag:'fi', capitals:['Helsinki'],                         col:'#003580'},
+  {name:'República Tcheca', flag:'cz', capitals:['Praga'],                       col:'#d7141a'},
+  {name:'Hungria',      flag:'hu', capitals:['Budapeste'],                        col:'#ce2939'},
+  {name:'Romênia',      flag:'ro', capitals:['Bucareste'],                        col:'#002b7f'},
+  {name:'Bulgária',     flag:'bg', capitals:['Sofia'],                            col:'#ffffff'},
+  {name:'Croácia',      flag:'hr', capitals:['Zagreb'],                           col:'#ff0000'},
+  {name:'Eslováquia',   flag:'sk', capitals:['Bratislava'],                       col:'#0b4ea2'},
+  {name:'Indonésia',    flag:'id', capitals:['Jacarta'],                          col:'#ce1126'},
+  {name:'Malásia',      flag:'my', capitals:['Kuala Lumpur'],                     col:'#cc0001'},
+  {name:'Tailândia',    flag:'th', capitals:['Bangkok'],                          col:'#a51931'},
+  {name:'Vietnã',       flag:'vn', capitals:['Hanói'],                            col:'#da251d'},
+  {name:'Filipinas',    flag:'ph', capitals:['Manila'],                           col:'#0038a8'},
+  {name:'Bangladesh',   flag:'bd', capitals:['Dhaka'],                            col:'#006a4e'},
+  {name:'Arábia Saudita', flag:'sa', capitals:['Riade'],                         col:'#006c35'},
+  {name:'Israel',       flag:'il', capitals:['Jerusalém'],                        col:'#0038b8'},
+  {name:'Singapura',    flag:'sg', capitals:['Singapura'],                        col:'#ef3340'},
+  {name:'Nova Zelândia',flag:'nz', capitals:['Wellington'],                       col:'#00247d'},
+  {name:'Colômbia',     flag:'co', capitals:['Bogotá'],                           col:'#fcd116'},
+  {name:'Venezuela',    flag:'ve', capitals:['Caracas'],                          col:'#cf142b'},
+  {name:'Equador',      flag:'ec', capitals:['Quito'],                            col:'#ffd100'},
+  {name:'Bolívia',      flag:'bo', capitals:['Sucre','La Paz'],                   col:'#d52b1e'},
+  {name:'Paraguai',     flag:'py', capitals:['Assunção'],                         col:'#d52b1e'},
+  {name:'Uruguai',      flag:'uy', capitals:['Montevidéu'],                       col:'#ffffff'},
+  {name:'Quênia',       flag:'ke', capitals:['Nairóbi'],                          col:'#006600'},
+  {name:'Etiópia',      flag:'et', capitals:['Adis Abeba'],                       col:'#078930'},
+  {name:'Gana',         flag:'gh', capitals:['Acra'],                             col:'#006b3f'},
+  {name:'Tanzânia',     flag:'tz', capitals:['Dodoma'],                           col:'#1eb53a'},
+  {name:'Angola',       flag:'ao', capitals:['Luanda'],                           col:'#cc0000'},
+  {name:'Moçambique',   flag:'mz', capitals:['Maputo'],                           col:'#009a44'},
+  {name:'Cazaquistão',  flag:'kz', capitals:['Astana'],                           col:'#00afca'},
+  {name:'Uzbequistão',  flag:'uz', capitals:['Tashkent'],                         col:'#1eb53a'},
+  {name:'Azerbaijão',   flag:'az', capitals:['Baku'],                             col:'#0092bc'},
+  {name:'Geórgia',      flag:'ge', capitals:['Tbilisi'],                          col:'#ffffff'},
+  {name:'Iraque',       flag:'iq', capitals:['Bagdá'],                            col:'#ce1126'},
+  {name:'Síria',        flag:'sy', capitals:['Damasco'],                          col:'#ce1126'},
 ];
 
 // ─── FLAG IMAGE CACHE ──────────────────────────────────────────────────────────
@@ -550,6 +590,230 @@ const FLAG_DRAW = {
     c.fillStyle='#ae1c28'; c.fillRect(x,y,w,h/3);
     c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
     c.fillStyle='#21468b'; c.fillRect(x,y+h*2/3,w,h/3);
+  },
+  no: (c,x,y,w,h) => {
+    c.fillStyle='#ef2b2d'; c.fillRect(x,y,w,h);
+    c.fillStyle='#fff'; c.fillRect(x+w*.3,y,w*.1,h); c.fillRect(x,y+h*.35,w,h*.3);
+    c.fillStyle='#002868'; c.fillRect(x+w*.32,y,w*.06,h); c.fillRect(x,y+h*.38,w,h*.24);
+  },
+  ch: (c,x,y,w,h) => {
+    c.fillStyle='#ff0000'; c.fillRect(x,y,w,h);
+    c.fillStyle='#fff';
+    c.fillRect(x+w*.4,y+h*.15,w*.2,h*.7); c.fillRect(x+w*.15,y+h*.4,w*.7,h*.2);
+  },
+  be: (c,x,y,w,h) => {
+    c.fillStyle='#000'; c.fillRect(x,y,w/3,h);
+    c.fillStyle='#ffd90f'; c.fillRect(x+w/3,y,w/3,h);
+    c.fillStyle='#f00'; c.fillRect(x+w*2/3,y,w/3,h);
+  },
+  at: (c,x,y,w,h) => {
+    c.fillStyle='#ed2939'; c.fillRect(x,y,w,h/3); c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
+  },
+  dk: (c,x,y,w,h) => {
+    c.fillStyle='#c60c30'; c.fillRect(x,y,w,h);
+    c.fillStyle='#fff'; c.fillRect(x+w*.3,y,w*.1,h); c.fillRect(x,y+h*.35,w,h*.3);
+  },
+  fi: (c,x,y,w,h) => {
+    c.fillStyle='#fff'; c.fillRect(x,y,w,h);
+    c.fillStyle='#003580'; c.fillRect(x+w*.28,y,w*.12,h); c.fillRect(x,y+h*.38,w,h*.24);
+  },
+  cz: (c,x,y,w,h) => {
+    c.fillStyle='#d7141a'; c.fillRect(x,y+h/2,w,h/2);
+    c.fillStyle='#fff'; c.fillRect(x,y,w,h/2);
+    c.fillStyle='#11457e'; c.beginPath(); c.moveTo(x,y); c.lineTo(x+w*.4,y+h/2); c.lineTo(x,y+h); c.closePath(); c.fill();
+  },
+  hu: (c,x,y,w,h) => {
+    c.fillStyle='#ce2939'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#477050'; c.fillRect(x,y+h*2/3,w,h/3);
+  },
+  ro: (c,x,y,w,h) => {
+    c.fillStyle='#002b7f'; c.fillRect(x,y,w/3,h);
+    c.fillStyle='#fcd116'; c.fillRect(x+w/3,y,w/3,h);
+    c.fillStyle='#ce1126'; c.fillRect(x+w*2/3,y,w/3,h);
+  },
+  bg: (c,x,y,w,h) => {
+    c.fillStyle='#fff'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#00966e'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#d62612'; c.fillRect(x,y+h*2/3,w,h/3);
+  },
+  hr: (c,x,y,w,h) => {
+    c.fillStyle='#ff0000'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#0000ff'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#ff0000'; c.fillRect(x+w*.3,y+h*.2,w*.15,h*.3);
+  },
+  sk: (c,x,y,w,h) => {
+    c.fillStyle='#fff'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#0b4ea2'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#ee1c25'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#fff'; c.beginPath(); c.arc(x+w*.25,y+h*.5,h*.25,0,Math.PI*2); c.fill();
+    c.fillStyle='#ee1c25'; c.beginPath(); c.arc(x+w*.25,y+h*.5,h*.18,0,Math.PI*2); c.fill();
+  },
+  id: (c,x,y,w,h) => {
+    c.fillStyle='#ce1126'; c.fillRect(x,y,w,h/2);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/2,w,h/2);
+  },
+  my: (c,x,y,w,h) => {
+    const sw=h/14;
+    for(let i=0;i<14;i++){c.fillStyle=i%2===0?'#cc0001':'#fff'; c.fillRect(x,y+i*sw,w,sw);}
+    c.fillStyle='#010066'; c.fillRect(x,y,w*.5,h*.5);
+    c.fillStyle='#ffcc00'; c.beginPath(); c.arc(x+w*.22,y+h*.25,h*.18,0,Math.PI*2); c.fill();
+    c.fillStyle='#010066'; c.beginPath(); c.arc(x+w*.26,y+h*.25,h*.15,0,Math.PI*2); c.fill();
+  },
+  th: (c,x,y,w,h) => {
+    c.fillStyle='#a51931'; c.fillRect(x,y,w,h/6); c.fillRect(x,y+h*5/6,w,h/6);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/6,w,h/6); c.fillRect(x,y+h*4/6,w,h/6);
+    c.fillStyle='#2d2a4a'; c.fillRect(x,y+h/3,w,h/3);
+  },
+  vn: (c,x,y,w,h) => {
+    c.fillStyle='#da251d'; c.fillRect(x,y,w,h);
+    c.fillStyle='#ffff00'; _star(c,x+w/2,y+h/2,h*.3,5);
+  },
+  ph: (c,x,y,w,h) => {
+    c.fillStyle='#0038a8'; c.fillRect(x,y,w,h/2);
+    c.fillStyle='#ce1126'; c.fillRect(x,y+h/2,w,h/2);
+    c.fillStyle='#fff'; c.beginPath(); c.moveTo(x,y); c.lineTo(x+w*.4,y+h/2); c.lineTo(x,y+h); c.closePath(); c.fill();
+    c.fillStyle='#fcd116'; c.beginPath(); c.arc(x+w*.18,y+h/2,h*.12,0,Math.PI*2); c.fill();
+  },
+  bd: (c,x,y,w,h) => {
+    c.fillStyle='#006a4e'; c.fillRect(x,y,w,h);
+    c.fillStyle='#f42a41'; c.beginPath(); c.arc(x+w*.45,y+h/2,h*.32,0,Math.PI*2); c.fill();
+  },
+  sa: (c,x,y,w,h) => {
+    c.fillStyle='#006c35'; c.fillRect(x,y,w,h);
+    c.fillStyle='#fff'; c.font=`bold ${h*.55}px serif`; c.textAlign='center'; c.textBaseline='middle'; c.fillText('✦',x+w/2,y+h/2);
+  },
+  il: (c,x,y,w,h) => {
+    c.fillStyle='#fff'; c.fillRect(x,y,w,h);
+    c.fillStyle='#0038b8'; c.fillRect(x,y+h*.12,w,h*.1); c.fillRect(x,y+h*.78,w,h*.1);
+    c.beginPath(); c.moveTo(x+w*.5,y+h*.25); c.lineTo(x+w*.65,y+h*.55); c.lineTo(x+w*.35,y+h*.55); c.closePath(); c.stroke();
+    c.beginPath(); c.moveTo(x+w*.5,y+h*.75); c.lineTo(x+w*.35,y+h*.45); c.lineTo(x+w*.65,y+h*.45); c.closePath(); c.stroke();
+  },
+  sg: (c,x,y,w,h) => {
+    c.fillStyle='#ef3340'; c.fillRect(x,y,w,h/2);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/2,w,h/2);
+    c.fillStyle='#fff'; c.beginPath(); c.arc(x+w*.2,y+h*.25,h*.18,0,Math.PI*2); c.fill();
+    c.fillStyle='#ef3340'; c.beginPath(); c.arc(x+w*.27,y+h*.25,h*.15,0,Math.PI*2); c.fill();
+  },
+  nz: (c,x,y,w,h) => {
+    c.fillStyle='#00247d'; c.fillRect(x,y,w,h);
+    c.fillStyle='#cc142b'; c.fillRect(x,y,w*.4,h*.45);
+    c.fillStyle='#fff'; c.fillRect(x+w*.17,y,w*.06,h*.45); c.fillRect(x,y+h*.2,w*.4,h*.05);
+    c.fillStyle='#cc142b'; c.fillRect(x+w*.185,y,w*.03,h*.45); c.fillRect(x,y+h*.215,w*.4,h*.02);
+    c.fillStyle='#cc1429'; c.font=`${h*.3}px serif`; c.textAlign='center'; c.textBaseline='middle'; c.fillText('★★★★',x+w*.7,y+h*.5);
+  },
+  co: (c,x,y,w,h) => {
+    c.fillStyle='#fcd116'; c.fillRect(x,y,w,h/2);
+    c.fillStyle='#003087'; c.fillRect(x,y+h/2,w,h*.25);
+    c.fillStyle='#ce1126'; c.fillRect(x,y+h*.75,w,h*.25);
+  },
+  ve: (c,x,y,w,h) => {
+    c.fillStyle='#cf142b'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#00247d'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#f4e20d'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#fff'; c.font=`${h*.25}px serif`; c.textAlign='center'; c.textBaseline='middle'; c.fillText('⋆⋆⋆⋆⋆⋆⋆⋆',x+w*.5,y+h*.5);
+  },
+  ec: (c,x,y,w,h) => {
+    c.fillStyle='#ffd100'; c.fillRect(x,y,w,h/2);
+    c.fillStyle='#003087'; c.fillRect(x,y+h/2,w,h*.25);
+    c.fillStyle='#ff0000'; c.fillRect(x,y+h*.75,w,h*.25);
+    c.fillStyle='#8b4513'; c.beginPath(); c.arc(x+w/2,y+h*.25,h*.18,0,Math.PI*2); c.fill();
+  },
+  bo: (c,x,y,w,h) => {
+    c.fillStyle='#d52b1e'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#f4e400'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#007a3d'; c.fillRect(x,y+h*2/3,w,h/3);
+  },
+  py: (c,x,y,w,h) => {
+    c.fillStyle='#d52b1e'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#0038a8'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#009a3d'; c.beginPath(); c.arc(x+w/2,y+h/2,h*.2,0,Math.PI*2); c.fill();
+  },
+  uy: (c,x,y,w,h) => {
+    c.fillStyle='#fff'; c.fillRect(x,y,w,h);
+    c.fillStyle='#3a75c4';
+    for(let i=1;i<9;i+=2) c.fillRect(x,y+i*h/9,w,h/9);
+    c.fillStyle='#ffd700'; c.beginPath(); c.arc(x+w*.18,y+h*.5,h*.25,0,Math.PI*2); c.fill();
+  },
+  ke: (c,x,y,w,h) => {
+    c.fillStyle='#006600'; c.fillRect(x,y,w,h/3); c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#000'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#bb0000'; c.fillRect(x,y+h*.38,w,h*.24);
+    c.fillStyle='#fff'; c.fillRect(x,y+h*.31,w,h*.07); c.fillRect(x,y+h*.62,w,h*.07);
+  },
+  et: (c,x,y,w,h) => {
+    c.fillStyle='#078930'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#fcdd09'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#da121a'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#0f47af'; c.beginPath(); c.arc(x+w/2,y+h/2,h*.25,0,Math.PI*2); c.fill();
+    c.fillStyle='#fcdd09'; _star(c,x+w/2,y+h/2,h*.2,5);
+  },
+  gh: (c,x,y,w,h) => {
+    c.fillStyle='#006b3f'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#fcd116'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#cf0921'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#000'; _star(c,x+w/2,y+h/2,h*.18,5);
+  },
+  tz: (c,x,y,w,h) => {
+    c.fillStyle='#1eb53a'; c.fillRect(x,y,w,h);
+    c.fillStyle='#fcd116'; c.beginPath(); c.moveTo(x,y+h); c.lineTo(x+w*.55,y+h); c.lineTo(x+w,y); c.lineTo(x,y); c.closePath(); c.fill();
+    c.fillStyle='#000'; c.beginPath(); c.moveTo(x,y+h); c.lineTo(x+w*.45,y+h); c.lineTo(x+w,y); c.lineTo(x+w*.55,y); c.closePath(); c.fill();
+  },
+  ao: (c,x,y,w,h) => {
+    c.fillStyle='#cc0000'; c.fillRect(x,y,w,h/2);
+    c.fillStyle='#000'; c.fillRect(x,y+h/2,w,h/2);
+    c.fillStyle='#ffff00'; c.font=`bold ${h*.4}px serif`; c.textAlign='center'; c.textBaseline='middle'; c.fillText('⚙',x+w/2,y+h/2);
+  },
+  mz: (c,x,y,w,h) => {
+    c.fillStyle='#009a44'; c.fillRect(x,y,w,h/3); c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/12); c.fillRect(x,y+h*7/12,w,h/12);
+    c.fillStyle='#000'; c.fillRect(x,y+h*5/12,w,h/6);
+    c.fillStyle='#e30000'; c.beginPath(); c.moveTo(x,y); c.lineTo(x+w*.35,y+h/2); c.lineTo(x,y+h); c.closePath(); c.fill();
+    c.fillStyle='#ffff00'; _star(c,x+w*.15,y+h/2,h*.2,5);
+  },
+  kz: (c,x,y,w,h) => {
+    c.fillStyle='#00afca'; c.fillRect(x,y,w,h);
+    c.fillStyle='#ffd700'; c.beginPath(); c.arc(x+w*.3,y+h*.38,h*.22,0,Math.PI*2); c.fill();
+    c.fillStyle='#00afca'; c.beginPath(); c.arc(x+w*.34,y+h*.36,h*.18,0,Math.PI*2); c.fill();
+    c.fillStyle='#ffd700'; _star(c,x+w*.5,y+h*.3,h*.12,5);
+  },
+  uz: (c,x,y,w,h) => {
+    c.fillStyle='#1eb53a'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#009fd4'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#fff'; c.beginPath(); c.arc(x+w*.12,y+h*.17,h*.12,0,Math.PI*2); c.fill();
+    c.fillStyle='#009fd4'; c.beginPath(); c.arc(x+w*.15,y+h*.16,h*.1,0,Math.PI*2); c.fill();
+  },
+  az: (c,x,y,w,h) => {
+    c.fillStyle='#0092bc'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#e8192c'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#00b050'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#fff'; c.beginPath(); c.arc(x+w*.5,y+h*.5,h*.2,0.4,Math.PI*2-0.4); c.stroke();
+    c.fillStyle='#fff'; _star(c,x+w*.58,y+h*.5,h*.1,5);
+  },
+  ge: (c,x,y,w,h) => {
+    c.fillStyle='#fff'; c.fillRect(x,y,w,h);
+    c.fillStyle='#ff0000'; c.fillRect(x+w*.44,y,w*.12,h); c.fillRect(x,y+h*.44,w,h*.12);
+    c.fillRect(x+w*.2,y+h*.15,w*.08,h*.3); c.fillRect(x+w*.16,y+h*.2,w*.16,h*.2);
+    c.fillRect(x+w*.72,y+h*.15,w*.08,h*.3); c.fillRect(x+w*.68,y+h*.2,w*.16,h*.2);
+    c.fillRect(x+w*.2,y+h*.55,w*.08,h*.3); c.fillRect(x+w*.16,y+h*.6,w*.16,h*.2);
+    c.fillRect(x+w*.72,y+h*.55,w*.08,h*.3); c.fillRect(x+w*.68,y+h*.6,w*.16,h*.2);
+  },
+  iq: (c,x,y,w,h) => {
+    c.fillStyle='#ce1126'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#000'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#007a3d'; c.font=`bold ${h*.35}px serif`; c.textAlign='center'; c.textBaseline='middle'; c.fillText('الله',x+w/2,y+h/2);
+  },
+  sy: (c,x,y,w,h) => {
+    c.fillStyle='#ce1126'; c.fillRect(x,y,w,h/3);
+    c.fillStyle='#fff'; c.fillRect(x,y+h/3,w,h/3);
+    c.fillStyle='#000'; c.fillRect(x,y+h*2/3,w,h/3);
+    c.fillStyle='#007a3d';
+    _star(c,x+w*.35,y+h*.5,h*.12,5); _star(c,x+w*.65,y+h*.5,h*.12,5);
   },
 };
 

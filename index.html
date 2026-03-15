@@ -830,6 +830,7 @@
     <li><a href="#quiz-sequencia">🔥 Sequência</a></li>
     <li><a href="#quiz-mapa">🌍 Mapa</a></li>
     <li><a href="#quiz-clickmap">🗺️ Clique</a></li>
+    <li><a href="#quiz-capmap">📍 Capitais Mapa</a></li>
     <li><a href="#ranking">Ranking</a></li>
     <li><a href="#pais-do-dia">🌟 País do Dia</a></li>
     <li><a href="#comparador">⚖️ Comparar</a></li>
@@ -839,6 +840,7 @@
     <li><a href="#sugestoes">Sugestões</a></li>
   </ul>
   <div style="display:flex;align-items:center;gap:0.8rem;">
+    <button onclick="openRandomCountry()" style="display:inline-flex;align-items:center;gap:.5rem;background:transparent;border:2px solid #ffd700;color:#ffd700;padding:.75rem 1.8rem;border-radius:4px;font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:3px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#ffd70022'" onmouseout="this.style.background='transparent'">🎲 País Aleatório</button>
     <a href="geomundo-game.html" target="_blank" style="display:flex;align-items:center;gap:0.5rem;background:linear-gradient(135deg,#7cff6b22,#00e5ff22);border:1px solid #7cff6b55;color:#7cff6b;padding:0.35rem 1rem;border-radius:20px;text-decoration:none;font-family:'Bebas Neue',cursive;font-size:0.95rem;letter-spacing:2px;transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#7cff6b33,#00e5ff33)';this.style.borderColor='#7cff6b'" onmouseout="this.style.background='linear-gradient(135deg,#7cff6b22,#00e5ff22)';this.style.borderColor='#7cff6b55'">🎮 CAPITAL QUEST</a>
     <div id="streakBadge" onclick="showStreakModal()" title="Sua sequência de dias" style="display:flex;align-items:center;gap:0.4rem;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:0.35rem 0.9rem;cursor:pointer;transition:all 0.2s;user-select:none;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
       <span id="streakFire" style="font-size:1.1rem;">🔥</span>
@@ -1356,6 +1358,7 @@
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal">
     <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    <div id="modalPhoto" style="width:100%;height:160px;border-radius:8px;overflow:hidden;margin-bottom:1rem;background:var(--bg);display:none;position:relative;"><img id="modalPhotoImg" style="width:100%;height:100%;object-fit:cover;" /><div id="modalPhotoCredit" style="position:absolute;bottom:4px;right:6px;font-size:0.55rem;color:rgba(255,255,255,0.6);"></div></div>
     <span class="modal-flag" id="modalFlag"></span>
     <div class="modal-name" id="modalName"></div>
     <div class="modal-grid" id="modalGrid"></div>
@@ -2123,12 +2126,16 @@ async function loadTempoRanking() {
 async function loadSvgMap(code, elId, w=130, h=90) {
   const el=document.getElementById(elId);
   if(!el)return;
+  const reqCode = code.toLowerCase();
+  el.dataset.svgCode = reqCode; // mark which code this element expects
   el.innerHTML='<span style="color:var(--muted);font-size:0.75rem;">carregando...</span>';
   try {
-    const url=`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${code.toLowerCase()}/vector.svg`;
+    const url=`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${reqCode}/vector.svg`;
     const res=await fetch(url);
     if(res.ok){
       const svg=await res.text();
+      // Only apply if this element still expects this code
+      if(el.dataset.svgCode !== reqCode) return;
       el.innerHTML=`<div style="width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${svg}</div>`;
       const svgEl=el.querySelector('svg');
       if(svgEl){svgEl.style.cssText=`width:${w}px;height:${h}px;fill:var(--accent);stroke:var(--bg);stroke-width:1px;filter:drop-shadow(0 0 8px rgba(0,229,255,0.4));`;}
@@ -3112,6 +3119,20 @@ const _origOpenModalBase = openModal;
 window.openModal = async function openModal(c) {
   _origOpenModalBase(c);
 
+  // Fetch and show country photo
+  const photoDiv = document.getElementById('modalPhoto');
+  const photoImg = document.getElementById('modalPhotoImg');
+  const photoCredit = document.getElementById('modalPhotoCredit');
+  if (photoDiv && photoImg) {
+    photoDiv.style.display = 'none';
+    const photo = await fetchCountryPhoto(c.name);
+    if (photo) {
+      photoImg.src = photo.src;
+      photoImg.onload = () => { photoDiv.style.display = 'block'; };
+      if (photoCredit) photoCredit.textContent = photo.credit;
+    }
+  }
+
   // Update passport & map
   setTimeout(() => { renderMapaProgresso(); updatePassaporte(); }, 100);
 
@@ -3171,6 +3192,146 @@ function trackQuizHit() {
   const n = (parseInt(localStorage.getItem('gm_quiz_hits'))||0)+1;
   localStorage.setItem('gm_quiz_hits', n);
   updatePassaporte();
+}
+
+</script>
+<script>
+
+// ─── FOTO DO PAÍS (Wikimedia) ────────────────────────────────────────────────
+const photoCache = {};
+async function fetchCountryPhoto(countryName) {
+  if (photoCache[countryName]) return photoCache[countryName];
+  try {
+    const search = encodeURIComponent(countryName);
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${search}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.thumbnail && data.thumbnail.source) {
+      const result = { src: data.thumbnail.source.replace(/\d+px/, '800px'), credit: 'Wikipedia' };
+      photoCache[countryName] = result;
+      return result;
+    }
+  } catch(e) {}
+  return null;
+}
+
+// ─── PAÍS ALEATÓRIO ──────────────────────────────────────────────────────────
+function openRandomCountry() {
+  const c = countries[Math.floor(Math.random() * countries.length)];
+  openModal(c);
+}
+
+// ─── QUIZ CAPITAIS NO MAPA ───────────────────────────────────────────────────
+let capMapScore = 0, capMapRound = 0, capMapTotal = 10;
+let capMapCurrent = null, capMapAnswered = false;
+let capMapLeafletMap = null, capMapMarker = null, capMapAnswerMarker = null;
+
+// Capital coordinates for quiz
+const CAPITAL_COORDS_QUIZ = {
+  ar:[-34.61,-58.38], br:[-15.77,-47.93], ca:[45.42,-75.69], cl:[-33.45,-70.67],
+  co:[4.71,-74.07], mx:[19.43,-99.13], pe:[-12.04,-77.04], us:[38.9,-77.04],
+  uy:[-34.9,-56.19], ve:[10.48,-66.88], de:[52.52,13.4], fr:[48.85,2.35],
+  gb:[51.5,-0.12], it:[41.9,12.49], es:[40.42,-3.7], pt:[38.72,-9.14],
+  nl:[52.37,4.89], pl:[52.23,21.01], se:[59.33,18.07], gr:[37.98,23.73],
+  ru:[55.75,37.62], ua:[50.45,30.52], tr:[39.93,32.86], cn:[39.93,116.39],
+  jp:[35.68,139.76], in:[28.63,77.22], kr:[37.57,126.98], au:[-35.28,149.13],
+  nz:[-41.29,174.78], za:[-25.74,28.19], eg:[30.06,31.25], ng:[9.07,7.4],
+  ma:[33.99,-6.85], ke:[-1.29,36.82], et:[9.03,38.74], id:[-6.21,106.85],
+  th:[13.75,100.52], vn:[21.03,105.85], ph:[14.59,120.98], sa:[24.69,46.72],
+  il:[31.78,35.22], ir:[35.69,51.39], pk:[33.72,73.06], bd:[23.72,90.41],
+  no:[59.91,10.75], fi:[60.17,24.94], dk:[55.68,12.57], ch:[46.95,7.45],
+  at:[48.21,16.37], be:[50.85,4.35], cz:[50.08,14.47], hu:[47.5,19.04],
+  ro:[44.43,26.1], bg:[42.7,23.32], hr:[45.81,15.98], sk:[48.14,17.11],
+  my:[3.15,101.7], sg:[1.35,103.82], mm:[19.74,96.08], kh:[11.57,104.92],
+};
+
+function startCapMapQuiz() {
+  capMapScore = 0; capMapRound = 0; capMapAnswered = false;
+  document.getElementById('capMapStart').style.display = 'none';
+  document.getElementById('capMapEnd').style.display = 'none';
+  document.getElementById('capMapGame').style.display = 'block';
+
+  // Init map
+  if (!capMapLeafletMap) {
+    capMapLeafletMap = L.map('capMapLeaflet', { zoomControl: true }).setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap, © CARTO', maxZoom: 18
+    }).addTo(capMapLeafletMap);
+    capMapLeafletMap.on('click', onCapMapClick);
+  } else {
+    if (capMapMarker) { capMapLeafletMap.removeLayer(capMapMarker); capMapMarker = null; }
+    if (capMapAnswerMarker) { capMapLeafletMap.removeLayer(capMapAnswerMarker); capMapAnswerMarker = null; }
+  }
+  nextCapMapQuestion();
+}
+
+function nextCapMapQuestion() {
+  if (capMapRound >= capMapTotal) { endCapMapQuiz(); return; }
+  capMapAnswered = false;
+  if (capMapMarker) { capMapLeafletMap.removeLayer(capMapMarker); capMapMarker = null; }
+  if (capMapAnswerMarker) { capMapLeafletMap.removeLayer(capMapAnswerMarker); capMapAnswerMarker = null; }
+  document.getElementById('capMapNext').style.display = 'none';
+  document.getElementById('capMapFeedback').innerHTML = '';
+  capMapLeafletMap.setView([20, 0], 2);
+
+  // Pick random country with known capital coords
+  const pool = countries.filter(c => CAPITAL_COORDS_QUIZ[c.code]);
+  capMapCurrent = pool[Math.floor(Math.random() * pool.length)];
+
+  capMapRound++;
+  document.getElementById('capMapRound').textContent = `Pergunta ${capMapRound}/${capMapTotal}`;
+  document.getElementById('capMapCountryName').textContent = capMapCurrent.name.toUpperCase();
+  document.getElementById('capMapCapitalName').textContent = '📍 ' + capMapCurrent.capital;
+}
+
+function onCapMapClick(e) {
+  if (capMapAnswered) return;
+  capMapAnswered = true;
+
+  const clicked = [e.latlng.lat, e.latlng.lng];
+  const correct = CAPITAL_COORDS_QUIZ[capMapCurrent.code];
+
+  // Place markers
+  const greenIcon = L.divIcon({ html: '📍', className: '', iconSize: [24, 24] });
+  const redIcon   = L.divIcon({ html: '✅', className: '', iconSize: [24, 24] });
+  capMapMarker = L.marker(clicked, { icon: greenIcon }).addTo(capMapLeafletMap);
+  capMapAnswerMarker = L.marker(correct, { icon: redIcon }).addTo(capMapLeafletMap)
+    .bindPopup(`${capMapCurrent.capital} (${capMapCurrent.name})`).openPopup();
+
+  // Draw line
+  L.polyline([clicked, correct], { color: '#ffd700', weight: 2, dashArray: '5,5' }).addTo(capMapLeafletMap);
+
+  // Calculate distance (km)
+  const R = 6371;
+  const dLat = (correct[0]-clicked[0]) * Math.PI/180;
+  const dLon = (correct[1]-clicked[1]) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(clicked[0]*Math.PI/180)*Math.cos(correct[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+  const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+
+  // Score based on distance
+  let pts = 0;
+  if (dist < 50) pts = 1000;
+  else if (dist < 200) pts = 800;
+  else if (dist < 500) pts = 600;
+  else if (dist < 1000) pts = 400;
+  else if (dist < 2000) pts = 200;
+  else pts = 50;
+
+  capMapScore += pts;
+  document.getElementById('capMapScore').textContent = `Pontuação: ${capMapScore}`;
+
+  const emoji = dist < 200 ? '🎯' : dist < 1000 ? '👍' : '😬';
+  document.getElementById('capMapFeedback').innerHTML =
+    `${emoji} <strong style="color:var(--accent)">${dist < 1 ? 'Perfeito!' : dist + ' km de distância'}</strong> &nbsp;+${pts} pts`;
+
+  capMapLeafletMap.fitBounds([clicked, correct], { padding: [50, 50] });
+  document.getElementById('capMapNext').style.display = 'inline-block';
+}
+
+function endCapMapQuiz() {
+  document.getElementById('capMapGame').style.display = 'none';
+  document.getElementById('capMapEnd').style.display = 'block';
+  document.getElementById('capMapFinalScore').textContent = capMapScore;
 }
 
 </script>

@@ -2765,6 +2765,15 @@ document.addEventListener('DOMContentLoaded', function() {
   renderFavorites();
   loadSuggestions();
   loadCapRanking();
+  if (typeof initNewFeatures === 'function') initNewFeatures();
+  const passNameEl = document.getElementById('passName');
+  if (passNameEl) passNameEl.addEventListener('click', () => {
+    const inp = document.getElementById('passNameInput');
+    inp.value = localStorage.getItem('gm_pass_name')||'';
+    inp.style.display = 'block';
+    passNameEl.style.display = 'none';
+    inp.focus();
+  });
 });
 </script>
 <!-- BACK TO TOP -->
@@ -2888,11 +2897,11 @@ const BADGES = [
   { id:'ten',    icon:'🗺️', label:'10 países',       check: (v)=> v.length >= 10 },
   { id:'fifty',  icon:'🌍', label:'50 países',       check: (v)=> v.length >= 50 },
   { id:'all',    icon:'🌎', label:'Todos os países', check: (v)=> v.length >= 195 },
-  { id:'america',icon:'🌎', label:'Toda a América',  check: (v)=> countries.filter(c=>c.continent==='América').every(c=>v.includes(c.code)) },
-  { id:'europa', icon:'🏰', label:'Toda a Europa',   check: (v)=> countries.filter(c=>c.continent==='Europa').every(c=>v.includes(c.code)) },
-  { id:'africa', icon:'🦁', label:'Toda a África',   check: (v)=> countries.filter(c=>c.continent==='África').every(c=>v.includes(c.code)) },
-  { id:'asia',   icon:'🐉', label:'Toda a Ásia',     check: (v)=> countries.filter(c=>c.continent==='Ásia').every(c=>v.includes(c.code)) },
-  { id:'oceania',icon:'🐨', label:'Oceania completa',check: (v)=> countries.filter(c=>c.continent==='Oceania').every(c=>v.includes(c.code)) },
+  { id:'america',icon:'🌎', label:'Toda a América',  check: (v)=> { const cs=countries.filter(c=>c.continent==='América'); return cs.length>0 && cs.every(c=>v.includes(c.code)); } },
+  { id:'europa', icon:'🏰', label:'Toda a Europa',   check: (v)=> { const cs=countries.filter(c=>c.continent==='Europa'); return cs.length>0 && cs.every(c=>v.includes(c.code)); } },
+  { id:'africa', icon:'🦁', label:'Toda a África',   check: (v)=> { const cs=countries.filter(c=>c.continent==='África'); return cs.length>0 && cs.every(c=>v.includes(c.code)); } },
+  { id:'asia',   icon:'🐉', label:'Toda a Ásia',     check: (v)=> { const cs=countries.filter(c=>c.continent==='Ásia'); return cs.length>0 && cs.every(c=>v.includes(c.code)); } },
+  { id:'oceania',icon:'🐨', label:'Oceania completa',check: (v)=> { const cs=countries.filter(c=>c.continent==='Oceania'); return cs.length>0 && cs.every(c=>v.includes(c.code)); } },
   { id:'streak3',icon:'🔥', label:'3 dias seguidos', check: ()=> (parseInt(localStorage.getItem('gm_streak'))||0) >= 3 },
   { id:'streak7',icon:'⚡', label:'7 dias seguidos', check: ()=> (parseInt(localStorage.getItem('gm_streak'))||0) >= 7 },
 ];
@@ -2944,16 +2953,7 @@ function savePassName() {
   updatePassaporte();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const passNameEl = document.getElementById('passName');
-  if (passNameEl) passNameEl.addEventListener('click', () => {
-    const inp = document.getElementById('passNameInput');
-    inp.value = localStorage.getItem('gm_pass_name')||'';
-    inp.style.display = 'block';
-    document.getElementById('passName').style.display = 'none';
-    inp.focus();
-  });
-});
+
 
 // ══════════════════════════════════════════════
 // MAPA DE PROGRESSO

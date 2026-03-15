@@ -17,7 +17,7 @@ async function loadRanking() {
   try {
     if (sbClient) {
       const { data, error } = await sbClient
-        .from('ranking_crime')
+        .from('ranking_capitalquest')
         .select('nome,pontuacao,abatidos,nivel,capitais')
         .order('pontuacao', { ascending: false })
         .limit(10);
@@ -52,7 +52,7 @@ async function submitScore() {
 
   try {
     if (sbClient) {
-      const { error } = await sbClient.from('ranking_crime').insert([entry]);
+      const { error } = await sbClient.from('ranking_capitalquest').insert([entry]);
       if (error) throw error;
       fb.textContent = '✅ Pontuação salva!';
       fb.style.color = '#7cff6b';

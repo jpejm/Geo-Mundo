@@ -2978,7 +2978,7 @@ async function loadCQRanking() {
   let rows = [];
   try {
     if (db) {
-      const { data } = await db.from('ranking_crime').select('nome,pontuacao,abatidos,nivel,capitais').order('pontuacao',{ascending:false}).limit(10);
+      const { data } = await db.from('ranking_capitalquest').select('nome,pontuacao,abatidos,nivel,capitais').order('pontuacao',{ascending:false}).limit(10);
       rows = data || [];
     }
   } catch(e) {}
@@ -3109,7 +3109,7 @@ const COUNTRY_LANG = {
 
 // ─── OPENMODAL ENHANCED (weather + how to say + passport update) ─────────────
 const _origOpenModalBase = openModal;
-async function openModal(c) {
+window.openModal = async function openModal(c) {
   _origOpenModalBase(c);
 
   // Update passport & map
@@ -3153,7 +3153,7 @@ async function openModal(c) {
 
 // ─── UPDATEPASSAPORTE ENHANCED (badge toast) ──────────────────────────────────
 const _origUpdatePassaporte = updatePassaporte;
-function updatePassaporte() {
+window.updatePassaporte = function updatePassaporte() {
   const prevEarned = new Set(JSON.parse(localStorage.getItem('gm_badges_earned')||'[]'));
   _origUpdatePassaporte();
   const visited = lsGet('gm_visits').map(v=>v.code);

@@ -52,34 +52,74 @@
   }
 
   /* NAV */
+  /* ── SIDEBAR ── */
   nav {
-    position:fixed; top:0; left:0; right:0; z-index:100;
-    background: rgba(6,10,16,0.85);
+    position:fixed; top:0; left:0; bottom:0; z-index:100;
+    width: 220px;
+    background: rgba(6,10,16,0.95);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
-    height: 60px;
-    display:flex; align-items:center; justify-content:space-between;
+    border-right: 1px solid var(--border);
+    display:flex; flex-direction:column;
+    overflow-y:auto; overflow-x:hidden;
+    padding-bottom:1rem;
   }
+  nav::-webkit-scrollbar { width:4px; }
+  nav::-webkit-scrollbar-track { background:transparent; }
+  nav::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
   .nav-logo {
     font-family:'Bebas Neue', cursive;
-    font-size:1.8rem;
+    font-size:1.6rem;
     color: var(--accent);
     letter-spacing:3px;
     text-shadow: var(--glow);
+    padding:1.2rem 1.2rem 0.8rem;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
   }
   .nav-logo span { color: var(--accent2); }
-  .nav-links { display:flex; gap:2rem; list-style:none; }
-  .nav-links a {
+
+  .nav-links {
+    display:flex; flex-direction:column;
+    list-style:none;
+    padding:0.5rem 0;
+    flex:1;
+  }
+  .nav-links li a {
+    display:block;
     color: var(--muted);
     text-decoration:none;
-    font-size:0.85rem;
+    font-size:0.78rem;
     font-weight:500;
     letter-spacing:1px;
     text-transform:uppercase;
-    transition: color 0.2s;
+    padding:0.55rem 1.2rem;
+    transition: color 0.2s, background 0.2s;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
-  .nav-links a:hover { color: var(--accent); }
+  .nav-links li a:hover { color: var(--accent); background:rgba(0,229,255,0.06); }
+
+  /* push content right */
+  body { padding-left:220px; }
+  #hero { min-height:100vh; }
+
+  /* sidebar bottom actions */
+  .nav-actions {
+    display:flex; flex-direction:column; gap:0.5rem;
+    padding:0.8rem 1rem;
+    border-top:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .nav-actions a, .nav-actions button {
+    display:flex; align-items:center; justify-content:center;
+    width:100%; box-sizing:border-box;
+    padding:0.45rem 0.6rem;
+    font-family:'Bebas Neue',cursive; font-size:0.85rem; letter-spacing:2px;
+    border-radius:6px; cursor:pointer; transition:all .2s;
+    text-decoration:none; text-align:center;
+  }
 
   /* HERO */
   #hero {
@@ -772,12 +812,36 @@
   /* COUNTER VISITS section */
   #visitas { background:var(--surface); border-radius:8px; padding:3rem; }
 
-  @media(max-width:600px) {
+  @media(max-width:768px) {
+    nav {
+      width:100%; height:52px; flex-direction:row; align-items:center;
+      padding:0 1rem; overflow:visible; bottom:auto; right:0;
+      border-right:none; border-bottom:1px solid var(--border);
+    }
     .nav-links { display:none; }
+    .nav-actions { display:none; }
+    body { padding-left:0; padding-top:52px; }
+    /* Hamburger button */
+    #navHamburger {
+      display:flex; flex-direction:column; gap:4px; cursor:pointer;
+      background:none; border:none; padding:4px; margin-left:auto;
+    }
+    #navHamburger span { display:block; width:22px; height:2px; background:var(--text); border-radius:2px; transition:all .2s; }
+    /* Open state */
+    nav.open .nav-links {
+      display:flex; position:fixed; top:52px; left:0; right:0; bottom:0;
+      flex-direction:column; background:rgba(6,10,16,0.98);
+      overflow-y:auto; padding:0.5rem 0 2rem; z-index:99;
+    }
+    nav.open .nav-links li a { padding:0.8rem 1.5rem; font-size:0.9rem; }
     .hero-stats { gap:1.5rem; }
     .quiz-options { grid-template-columns:1fr; }
     .modal-grid { grid-template-columns:1fr; }
     .ranking-input-row { flex-direction:column; }
+  }
+  @media(min-width:769px) {
+    #navHamburger { display:none; }
+    body { padding-top:0; }
   }
 
 <style>
@@ -819,35 +883,38 @@
 
 <nav>
   <div class="nav-logo">Geo<span>Mundo</span></div>
+  <button id="navHamburger" onclick="document.querySelector('nav').classList.toggle('open')" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
   <ul class="nav-links">
-    <li><a href="#continentes">Continentes</a></li>
-    <li><a href="#bandeiras">Bandeiras</a></li>
-    <li><a href="#records">Recordes</a></li>
-    <li><a href="#curiosidades">Curiosidades</a></li>
-    <li><a href="#quiz">Quiz Bandeiras</a></li>
-    <li><a href="#quiz-capitais">Quiz Capitais</a></li>
-    <li><a href="#quiz-tempo">⏱️ Tempo</a></li>
+    <li><a href="#continentes">🌍 Continentes</a></li>
+    <li><a href="#bandeiras">🏳️ Bandeiras</a></li>
+    <li><a href="#records">🏆 Recordes</a></li>
+    <li><a href="#curiosidades">💡 Curiosidades</a></li>
+    <li><a href="#quiz">🎯 Quiz Bandeiras</a></li>
+    <li><a href="#quiz-capitais">🏛️ Quiz Capitais</a></li>
+    <li><a href="#quiz-tempo">⏱️ Contra o Tempo</a></li>
     <li><a href="#quiz-sequencia">🔥 Sequência</a></li>
-    <li><a href="#quiz-mapa">🌍 Mapa</a></li>
-    <li><a href="#quiz-clickmap">🗺️ Clique</a></li>
-    <li><a href="#quiz-capmap">📍 Capitais Mapa</a></li>
-    <li><a href="#ranking">Ranking</a></li>
+    <li><a href="#quiz-mapa">🌍 Adivinhe o Mapa</a></li>
+    <li><a href="#quiz-clickmap">🗺️ Clique no Mapa</a></li>
+    <li><a href="#quiz-capmap">📍 Capitais no Mapa</a></li>
+    <li><a href="#ranking">📊 Ranking</a></li>
     <li><a href="#pais-do-dia">🌟 País do Dia</a></li>
-    <li><a href="#comparador">⚖️ Comparar</a></li>
-    <li><a href="#passaporte">🛂 Passaporte</a></li>
+    <li><a href="#comparador">⚖️ Comparar Países</a></li>
+    <li><a href="#passaporte">🛂 Meu Passaporte</a></li>
     <li><a href="#mapa-progresso">🗺️ Meu Mapa</a></li>
-    <li><a href="#favoritos">Favoritos</a></li>
-    <li><a href="#sugestoes">Sugestões</a></li>
+    <li><a href="#favoritos">❤️ Favoritos</a></li>
+    <li><a href="#sugestoes">💬 Sugestões</a></li>
   </ul>
-  <div style="display:flex;align-items:center;gap:0.8rem;">
-    <button onclick="openRandomCountry()" style="display:inline-flex;align-items:center;gap:.5rem;background:transparent;border:2px solid #ffd700;color:#ffd700;padding:.75rem 1.8rem;border-radius:4px;font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:3px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#ffd70022'" onmouseout="this.style.background='transparent'">🎲 País Aleatório</button>
-    <a href="geomundo-game.html" target="_blank" style="display:flex;align-items:center;gap:0.5rem;background:linear-gradient(135deg,#7cff6b22,#00e5ff22);border:1px solid #7cff6b55;color:#7cff6b;padding:0.35rem 1rem;border-radius:20px;text-decoration:none;font-family:'Bebas Neue',cursive;font-size:0.95rem;letter-spacing:2px;transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#7cff6b33,#00e5ff33)';this.style.borderColor='#7cff6b'" onmouseout="this.style.background='linear-gradient(135deg,#7cff6b22,#00e5ff22)';this.style.borderColor='#7cff6b55'">🎮 CAPITAL QUEST</a>
-    <div id="streakBadge" onclick="showStreakModal()" title="Sua sequência de dias" style="display:flex;align-items:center;gap:0.4rem;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:0.35rem 0.9rem;cursor:pointer;transition:all 0.2s;user-select:none;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
-      <span id="streakFire" style="font-size:1.1rem;">🔥</span>
-      <span id="streakCount" style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent2);letter-spacing:1px;">0</span>
-      <span style="font-size:0.65rem;color:var(--muted);letter-spacing:1px;">DIAS</span>
+  <div class="nav-actions">
+    <div id="streakBadge" onclick="showStreakModal()" style="display:flex;align-items:center;justify-content:center;gap:0.4rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:0.45rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span id="streakFire" style="font-size:1rem;">🔥</span>
+      <span id="streakCount" style="font-family:'Bebas Neue',cursive;font-size:1rem;color:var(--accent2);letter-spacing:1px;">0</span>
+      <span style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;">DIAS</span>
     </div>
-    <button id="themeToggle" onclick="toggleTheme()" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:1px;transition:all 0.2s;">🌙 TEMA</button>
+    <button onclick="openRandomCountry()" style="background:transparent;border:1px solid #ffd700;color:#ffd700;font-family:'Bebas Neue',cursive;font-size:0.8rem;letter-spacing:2px;padding:0.45rem;border-radius:6px;cursor:pointer;width:100%;transition:all .2s;" onmouseover="this.style.background='#ffd70022'" onmouseout="this.style.background='transparent'">🎲 Aleatório</button>
+    <a href="geomundo-game.html" target="_blank" style="background:linear-gradient(135deg,#7cff6b22,#00e5ff22);border:1px solid #7cff6b55;color:#7cff6b;font-family:'Bebas Neue',cursive;font-size:0.8rem;letter-spacing:2px;padding:0.45rem;border-radius:6px;text-decoration:none;text-align:center;transition:all .2s;" onmouseover="this.style.borderColor='#7cff6b'" onmouseout="this.style.borderColor='#7cff6b55'">🎮 Capital Quest</a>
+    <button id="themeToggle" onclick="toggleTheme()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:1px;padding:0.45rem;border-radius:6px;cursor:pointer;width:100%;transition:all .2s;">🌙 TEMA</button>
   </div>
 </nav>
 
@@ -2802,6 +2869,10 @@ document.addEventListener('DOMContentLoaded', function() {
     inp.style.display = 'block';
     passNameEl.style.display = 'none';
     inp.focus();
+  });
+  // Close mobile sidebar on nav link click
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => document.querySelector('nav').classList.remove('open'));
   });
 });
 </script>

@@ -1851,7 +1851,14 @@ function filterByContinent(cont, btn) {
 // ===== MODAL =====
 function openModal(c) {
   currentModalCountry = c;
-  document.getElementById('modalFlag').innerHTML = `<img src="https://flagcdn.com/w160/${c.code}.png" alt="Bandeira de ${c.name}" style="width:120px;height:auto;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.5);border:1px solid var(--border);">`;
+  // Bandeira real via flagcdn.com
+  const flagEl = document.getElementById('modalFlag');
+  flagEl.innerHTML = `<span style="font-size:5rem;line-height:1;">${codeToEmoji(c.code)}</span>`;
+  const flagImg = new Image();
+  flagImg.onload = () => {
+    flagEl.innerHTML = `<img src="${flagImg.src}" alt="Bandeira de ${c.name}" style="width:100%;max-width:320px;height:auto;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,0.5);border:1px solid var(--border);display:block;margin-bottom:.5rem;">`;
+  };
+  flagImg.src = `https://flagcdn.com/w320/${c.code}.png`;
   document.getElementById('modalName').textContent = c.name;
   document.getElementById('modalGrid').innerHTML = `
     <div class="modal-item"><label>Capital</label><span>🏛 ${c.capital}</span></div>

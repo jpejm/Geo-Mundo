@@ -375,7 +375,13 @@
     position:relative;
     transform: translateY(20px);
     transition: transform 0.3s;
+    max-height: 85vh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
+  .modal::-webkit-scrollbar { width:4px; }
+  .modal::-webkit-scrollbar-track { background:transparent; }
+  .modal::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
   .modal-overlay.active .modal { transform:translateY(0); }
   .modal-close {
     position:absolute; top:1rem; right:1rem;
@@ -1845,7 +1851,7 @@ function filterByContinent(cont, btn) {
 // ===== MODAL =====
 function openModal(c) {
   currentModalCountry = c;
-  document.getElementById('modalFlag').innerHTML = `<span style="font-size:5rem;line-height:1;">${codeToEmoji(c.code)}</span>`;
+  document.getElementById('modalFlag').innerHTML = `<img src="https://flagcdn.com/w160/${c.code}.png" alt="Bandeira de ${c.name}" style="width:120px;height:auto;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,0.5);border:1px solid var(--border);">`;
   document.getElementById('modalName').textContent = c.name;
   document.getElementById('modalGrid').innerHTML = `
     <div class="modal-item"><label>Capital</label><span>🏛 ${c.capital}</span></div>

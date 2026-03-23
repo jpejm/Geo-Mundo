@@ -1439,7 +1439,6 @@
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal">
     <button class="modal-close" onclick="closeModalBtn()">✕</button>
-    <div id="modalPhoto" style="width:100%;height:160px;border-radius:8px;overflow:hidden;margin-bottom:1rem;background:var(--bg);display:none;position:relative;"><img id="modalPhotoImg" style="width:100%;height:100%;object-fit:cover;" /><div id="modalPhotoCredit" style="position:absolute;bottom:4px;right:6px;font-size:0.55rem;color:rgba(255,255,255,0.6);"></div></div>
     <span class="modal-flag" id="modalFlag"></span>
     <div class="modal-name" id="modalName"></div>
     <div class="modal-grid" id="modalGrid"></div>
@@ -1795,7 +1794,7 @@ function renderPanelCountries(idx, contName, q) {
     const row = document.createElement('div');
     row.className = 'panel-country-row';
     row.style.animationDelay = `${i * 30}ms`;
-    row.innerHTML = `<span class="panel-flag">${flagImg(c.code, 36)}</span><div class="panel-info"><div class="panel-country-name">${c.name}</div><div class="panel-capital">🏛 ${c.capital}</div></div>`;
+    row.innerHTML = `<span class="panel-flag">${`<img src="https://flagcdn.com/w40/${c.code}.png" style="width:28px;height:auto;border-radius:2px;vertical-align:middle;">`}</span><div class="panel-info"><div class="panel-country-name">${c.name}</div><div class="panel-capital">🏛 ${c.capital}</div></div>`;
     row.onclick = (e) => { e.stopPropagation(); openModal(c); };
     container.appendChild(row);
   });
@@ -1835,7 +1834,7 @@ function renderFlags() {
   }).forEach(c => {
     const el = document.createElement('div');
     el.className = 'flag-card';
-    el.innerHTML = `<span class="flag-emoji">${flagImg(c.code, 48)}</span><div class="flag-country">${c.name}</div><div class="flag-capital">🏛 ${c.capital}</div>`;
+    el.innerHTML = `<img src="https://flagcdn.com/w80/${c.code}.png" class="flag-emoji" style="width:60px;height:auto;border-radius:3px;object-fit:cover;" onerror="this.style.display='none'"/><div class="flag-country">${c.name}</div><div class="flag-capital">🏛 ${c.capital}</div>`;
     el.onclick = () => openModal(c);
     flagsGrid.appendChild(el);
   });
@@ -1853,7 +1852,7 @@ function openModal(c) {
   currentModalCountry = c;
   // Bandeira real via flagcdn.com
   const flagEl = document.getElementById('modalFlag');
-  flagEl.innerHTML = `<span style="font-size:5rem;line-height:1;">${codeToEmoji(c.code)}</span>`;
+  flagEl.innerHTML = ``;
   const flagImg = new Image();
   flagImg.onload = () => {
     flagEl.innerHTML = `<img src="${flagImg.src}" alt="Bandeira de ${c.name}" style="width:100%;max-width:320px;height:auto;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,0.5);border:1px solid var(--border);display:block;margin-bottom:.5rem;">`;
@@ -1985,7 +1984,7 @@ function nextQuestion() {
   }
   qCurrent = pool[0];
   const options = shuffle([qCurrent, ...pool.slice(1,4)]);
-  document.getElementById('quizFlag').innerHTML = codeToEmoji(qCurrent.code);
+  document.getElementById('quizFlag').innerHTML = `<img src="https://flagcdn.com/w160/${qCurrent.code}.png" style="width:100px;height:auto;border-radius:4px;">`;
   document.getElementById('quizQuestion').textContent = 'De qual país são estes símbolos?';
   loadTerritoryMap(qCurrent.code);
   const optDiv = document.getElementById('quizOptions');
@@ -2129,7 +2128,7 @@ async function nextTempoQuestion() {
   const pool = shuffle([...new Map(countries.map(c=>[c.code,c])).values()]);
   tempoCurrent = pool[0];
   const options = shuffle([tempoCurrent, ...pool.slice(1,4)]);
-  document.getElementById('tempoFlag').innerHTML = codeToEmoji(tempoCurrent.code);
+  document.getElementById('tempoFlag').innerHTML = `<img src="https://flagcdn.com/w160/${tempoCurrent.code}.png" style="width:100px;height:auto;border-radius:4px;">`;
   document.getElementById('tempoQuestion').textContent = 'De qual país são estes símbolos?';
   loadTempoMap(tempoCurrent.code);
   const optDiv = document.getElementById('tempoOptions');
@@ -2262,7 +2261,7 @@ function nextSeqQuestion(){
   const pool=shuffle([...new Map(countries.map(c=>[c.code,c])).values()]);
   seqCurrent=pool[0];
   const options=shuffle([seqCurrent,...pool.slice(1,4)]);
-  document.getElementById('seqFlag').innerHTML=codeToEmoji(seqCurrent.code);
+  document.getElementById('seqFlag').innerHTML=`<img src="https://flagcdn.com/w160/${seqCurrent.code}.png" style="width:100px;height:auto;border-radius:4px;">`;
   loadSvgMap(seqCurrent.code,'seqTerritory');
   const optDiv=document.getElementById('seqOptions');
   optDiv.innerHTML='';
@@ -2689,7 +2688,7 @@ function renderFavorites() {
   if (!favs.length) { el.innerHTML = '<p class="fav-empty">Nenhum favorito ainda. Explore os países e favorite os que você mais gosta!</p>'; return; }
   el.innerHTML = favs.map(c => `
     <div class="fav-card">
-      <span style="font-size:1.4rem">${codeToEmoji(c.code)}</span>
+      <img src="https://flagcdn.com/w40/${c.code}.png" style="width:28px;height:auto;border-radius:2px;vertical-align:middle;">
       <span class="fav-name">${c.name}</span>
       <button class="fav-remove" onclick="removeFavorite('${c.code}')" title="Remover">✕</button>
     </div>
@@ -2759,7 +2758,7 @@ function renderVisits(items) {
   const max = items[0]?.count || 1;
   el.innerHTML = items.map(v => `
     <div class="visit-item">
-      <span class="visit-flag">${codeToEmoji(v.code)}</span>
+      <img src="https://flagcdn.com/w40/${v.code}.png" class="visit-flag" style="width:28px;height:auto;border-radius:2px;">
       <div class="visit-info">
         <div class="visit-name">${v.name}</div>
         <div class="visit-count">${v.count} visita${v.count !== 1 ? 's' : ''}</div>
@@ -2910,7 +2909,7 @@ function initPaisDoDia() {
   else { idx = Math.floor(Math.random() * countries.length); localStorage.setItem('gm_pdd', JSON.stringify({date:today,idx})); }
   paisDoDia = countries[idx];
   const c = paisDoDia;
-  document.getElementById('pdDia_flag').textContent = codeToEmoji(c.code);
+  document.getElementById('pdDia_flag').innerHTML = `<img src="https://flagcdn.com/w160/${c.code}.png" style="width:120px;height:auto;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">`;
   document.getElementById('pdDia_name').textContent = c.name.toUpperCase();
   document.getElementById('pdDia_demonym').textContent = c.demonym || '';
   document.getElementById('pdDia_facts').innerHTML = [
@@ -2964,7 +2963,7 @@ function renderComparador() {
 
   function countryCard(c, side) {
     return `<div style="text-align:center;">
-      <div style="font-size:3.5rem;margin-bottom:0.3rem;">${codeToEmoji(c.code)}</div>
+      <div style="margin-bottom:0.5rem;"><img src="https://flagcdn.com/w80/${c.code}.png" style="width:60px;height:auto;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>
       <div style="font-family:'Bebas Neue',cursive;font-size:1.3rem;letter-spacing:2px;">${c.name}</div>
       <div style="font-size:0.7rem;color:var(--muted);margin-bottom:1rem;">${c.demonym||''}</div>
       ${[['Capital',c.capital],['Pop.',c.pop],['PIB',c.gdp],['Área',c.area],['IDH',c.idh||'—'],['Idioma',c.lang]].map(([l,v])=>`
@@ -3222,18 +3221,6 @@ const _origOpenModalBase = openModal;
 window.openModal = async function openModal(c) {
   _origOpenModalBase(c);
 
-  // Fetch and show country photo
-  const photoDiv = document.getElementById('modalPhoto');
-  const photoImg = document.getElementById('modalPhotoImg');
-  const photoCredit = document.getElementById('modalPhotoCredit');
-  if (photoDiv && photoImg) {
-    photoDiv.style.display = 'none';
-    const photo = await fetchCountryPhoto(c.name);
-    if (photo) {
-      photoImg.src = photo.src;
-      photoImg.onload = () => { photoDiv.style.display = 'block'; };
-      if (photoCredit) photoCredit.textContent = photo.credit;
-    }
   }
 
   // Update passport & map

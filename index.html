@@ -3097,10 +3097,10 @@ async function loadCQRanking() {
 // INIT ALL NEW FEATURES
 // ══════════════════════════════════════════════
 function initNewFeatures() {
-  initPaisDoDia();
-  initComparador();
-  updatePassaporte();
-  loadCQRanking();
+  try { initPaisDoDia(); } catch(e) { console.error('initPaisDoDia:', e); }
+  try { initComparador(); } catch(e) { console.error('initComparador:', e); }
+  try { updatePassaporte(); } catch(e) { console.error('updatePassaporte:', e); }
+  try { loadCQRanking(); } catch(e) { console.error('loadCQRanking:', e); }
 }
 
 

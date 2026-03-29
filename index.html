@@ -903,7 +903,6 @@
     <li><a href="#pais-do-dia">🌟 País do Dia</a></li>
     <li><a href="#comparador">⚖️ Comparar Países</a></li>
     <li><a href="#passaporte">🛂 Meu Passaporte</a></li>
-    <li><a href="#mapa-progresso">🗺️ Meu Mapa</a></li>
     <li><a href="#favoritos">❤️ Favoritos</a></li>
     <li><a href="#sugestoes">💬 Sugestões</a></li>
   </ul>
@@ -1375,20 +1374,6 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- MAPA DE PROGRESSO -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<section id="mapa-progresso">
-  <h2 class="section-title">🗺️ MAPA DE <span>PROGRESSO</span></h2>
-  <div class="section-line"></div>
-  <div style="background:var(--surface);border-radius:12px;padding:2rem;border:1px solid var(--border);">
-    <p style="color:var(--muted);font-size:0.82rem;text-align:center;margin-bottom:1.5rem;">Cada país que você visitar (abrindo o modal) fica destacado aqui</p>
-    <div id="mapaProgressoGrid" style="display:flex;flex-wrap:wrap;gap:0.4rem;justify-content:center;max-height:400px;overflow-y:auto;padding:0.5rem;"></div>
-    <div style="text-align:center;margin-top:1rem;">
-      <span style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--muted);margin-right:1.5rem;"><span style="width:14px;height:14px;background:var(--accent);border-radius:3px;display:inline-block;"></span>Visitado</span>
-      <span style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--muted);"><span style="width:14px;height:14px;background:var(--border);border-radius:3px;display:inline-block;"></span>Não visitado</span>
-    </div>
-  </div>
-</section>
 
 
 <!-- PAINEL DEV SECRETO -->
@@ -3115,7 +3100,6 @@ function initNewFeatures() {
   initPaisDoDia();
   initComparador();
   updatePassaporte();
-  renderMapaProgresso();
   loadCQRanking();
 }
 

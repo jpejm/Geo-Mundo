@@ -3220,10 +3220,8 @@ const COUNTRY_LANG = {
 
 // ─── OPENMODAL ENHANCED (weather + how to say + passport update) ─────────────
 const _origOpenModalBase = openModal;
-window.openModal = async function openModal(c) {
+window.openModal = async function(c) {
   _origOpenModalBase(c);
-
-  }
 
   // Update passport & map
   setTimeout(() => { renderMapaProgresso(); updatePassaporte(); }, 100);
@@ -3266,7 +3264,7 @@ window.openModal = async function openModal(c) {
 
 // ─── UPDATEPASSAPORTE ENHANCED (badge toast) ──────────────────────────────────
 const _origUpdatePassaporte = updatePassaporte;
-window.updatePassaporte = function updatePassaporte() {
+window.updatePassaporte = function() {
   const prevEarned = new Set(JSON.parse(localStorage.getItem('gm_badges_earned')||'[]'));
   _origUpdatePassaporte();
   const visited = lsGet('gm_visits').map(v=>v.code);

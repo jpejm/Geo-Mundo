@@ -883,6 +883,8 @@
 <body>
 
 <nav>
+  <input id="navSearch" placeholder="🔍 Buscar país..." oninput="navSearchCountry(this.value)" autocomplete="off" spellcheck="false" style="margin:0.8rem 0.8rem 0;width:calc(100% - 1.6rem);background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.45rem 0.7rem;border-radius:6px;font-family:'Space Mono',monospace;font-size:0.72rem;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+  <div id="navSearchResults" style="margin:0 0.8rem;display:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;max-height:200px;overflow-y:auto;"></div>
   <div class="nav-logo">Geo<span>Mundo</span></div>
   <button id="navHamburger" onclick="document.querySelector('nav').classList.toggle('open')" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -957,10 +959,12 @@
 
 <!-- BANDEIRAS -->
 <section id="bandeiras">
+  <div class="flags-search" style="margin-bottom:1.5rem;">
+    <input class="search-input" id="searchInput" placeholder="🔍  Buscar país ou capital..." oninput="filterFlags()">
+  </div>
   <h2 class="section-title">BANDEIRAS <span>DO MUNDO</span></h2>
   <div class="section-line"></div>
   <div class="flags-search">
-    <input class="search-input" id="searchInput" placeholder="🔍  Buscar país..." oninput="filterFlags()">
     <div class="filter-btns-row">
       <button class="filter-btn active" onclick="filterByContinent('all',this)">🌐 Todos</button>
       <button class="filter-btn" onclick="filterByContinent('América',this)">🌎 América</button>
@@ -3334,6 +3338,28 @@ function hideVisitasPanel() {
 
 // Registra visita ao carregar
 document.addEventListener('DOMContentLoaded', () => { registerPageVisit(); });
+
+// ─── BUSCA NA SIDEBAR ────────────────────────────────────────────────────────
+function navSearchCountry(q) {
+  const box = document.getElementById('navSearchResults');
+  if (!q.trim()) { box.style.display = 'none'; return; }
+  const results = countries.filter(c =>
+    c.name.toLowerCase().includes(q.toLowerCase()) ||
+    c.capital.toLowerCase().includes(q.toLowerCase())
+  ).slice(0, 8);
+  if (!results.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = results.map(c => `
+    <div onclick="openModal(countries.find(x=>x.code==='${c.code}')); document.getElementById('navSearch').value=''; document.getElementById('navSearchResults').style.display='none';"
+      style="display:flex;align-items:center;gap:0.6rem;padding:0.45rem 0.7rem;cursor:pointer;font-size:0.75rem;border-bottom:1px solid var(--border);transition:background .15s;"
+      onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+      <img src="https://flagcdn.com/w40/${c.code}.png" style="width:22px;height:auto;border-radius:2px;flex-shrink:0;">
+      <div>
+        <div style="color:var(--text);font-weight:600;">${c.name}</div>
+        <div style="color:var(--muted);font-size:0.65rem;">${c.capital}</div>
+      </div>
+    </div>`).join('');
+}
 
 function openRandomCountry() {
   const c = countries[Math.floor(Math.random() * countries.length)];
